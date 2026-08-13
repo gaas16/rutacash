@@ -3,259 +3,209 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>RutaCash - Lista de Clientes</title>
+  <title>RutaCash - Sistema de Cobranza</title>
   <style>
     * { box-sizing: border-box; font-family: sans-serif; margin: 0; padding: 0; }
-    body { background-color: #f2f2f2; -webkit-user-select: none; user-select: none; }
+    body { background-color: #f2f2f2; user-select: none; padding-bottom: 65px; }
 
-    /* Encabezado Azul */
+    /* Encabezado */
     .top-header {
       background-color: #3b5998;
       color: white;
-      padding: 10px 15px;
+      padding: 12px 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .top-header h2 { font-size: 18px; font-weight: normal; }
-    .top-header .stats { font-size: 13px; opacity: 0.9; text-align: right; }
+    .top-header h2 { font-size: 17px; font-weight: normal; }
+    .top-header .date-badge { font-size: 12px; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px; }
 
-    /* Barra de Búsqueda */
-    .search-bar {
-      background-color: #ffffff;
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      border-bottom: 2px solid #e0e0e0;
+    /* Vistas / Pestañas */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Buscador y Filtros */
+    .filter-section {
+      background: white;
+      padding: 10px 12px;
+      border-bottom: 1px solid #ddd;
     }
-    .search-bar input {
-      flex: 1;
+    .search-input {
+      width: 100%;
       padding: 8px 12px;
       border: 1px solid #ccc;
       border-radius: 4px;
-      font-size: 16px;
-      outline: none;
+      font-size: 15px;
+      margin-bottom: 8px;
     }
+    .filter-buttons {
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+    }
+    .btn-filter {
+      background: #e0e0e0;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #555;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-filter.active { background: #3b5998; color: white; }
 
-    /* Contenedor de Lista */
-    .client-list { padding-bottom: 70px; }
-
-    /* Tarjeta de Cliente */
+    /* Tarjetas de Clientes */
     .client-card {
       background-color: white;
       padding: 12px 15px;
       display: flex;
       align-items: center;
       border-bottom: 1px solid #e0e0e0;
+      position: relative;
     }
-    .client-card:active { background-color: #e9ecef; }
-
-    /* Icono indicador */
     .icon-status {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      color: white;
-      margin-right: 12px;
-      font-size: 14px;
-      flex-shrink: 0;
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; color: white; margin-right: 12px; font-size: 13px; flex-shrink: 0;
     }
     .status-red { background-color: #e74c3c; }   /* Pendiente hoy */
     .status-green { background-color: #2ecc71; } /* Pagado hoy */
-    .status-grey { background-color: #95a5a6; }  /* Saldo $0 */
+    .status-grey { background-color: #95a5a6; }  /* Saldado */
+    .status-orange { background-color: #e67e22; }/* Atrasado */
 
-    /* Información */
     .client-info { flex: 1; }
-    .client-info .name {
-      font-size: 15px;
-      font-weight: bold;
-      color: #333;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-    }
-    .client-info .details {
-      font-size: 13px;
-      color: #555;
-    }
-    .client-info .details span { font-weight: bold; color: #000; }
-
-    /* Botón Cobrar */
-    .btn-action {
-      background-color: #27ae60;
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    /* Modal Formulario */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-    }
-    .modal-card {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      width: 90%;
-      max-width: 400px;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-    .modal-card h3 { margin-bottom: 12px; color: #3b5998; }
-    .form-group { margin-bottom: 10px; }
-    .form-group label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 3px; }
-    .form-group input, .form-group select {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 14px;
-    }
+    .client-info .name { font-size: 14px; font-weight: bold; color: #333; text-transform: uppercase; }
+    .client-info .details { font-size: 12px; color: #555; margin-top: 2px; }
+    .client-info .details b { color: #000; }
     
-    /* Resumen Calculado */
-    .calc-box {
-      background-color: #eef2f7;
-      padding: 10px;
-      border-radius: 6px;
-      margin-bottom: 12px;
-      border-left: 4px solid #3b5998;
-      font-size: 13px;
-    }
-    .calc-box div { margin-bottom: 3px; }
-    .calc-box b { color: #2c3e50; }
+    .actions-group { display: flex; gap: 5px; align-items: center; }
+    .btn-action { background: #27ae60; color: white; border: none; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; }
+    .btn-edit { background: #f39c12; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
 
-    .btn-main { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 15px; margin-bottom: 8px; cursor: pointer; }
-    .btn-close { background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 4px; width: 100%; font-weight: bold; cursor: pointer; }
+    /* Resumen Financiero Estilo Imagen */
+    .summary-box { background: white; margin: 10px; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .summary-row { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #eee; font-size: 14px; }
+    .summary-row:nth-child(even) { background-color: #f9f9f9; }
+    .summary-row b { color: #2c3e50; }
+
+    /* Formularios */
+    .form-container { background: white; margin: 10px; padding: 15px; border-radius: 6px; }
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; }
+    .form-group input, .form-group select { width: 100%; padding: 9px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    .calc-box { background: #eef2f7; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #3b5998; font-size: 13px; }
+
+    .btn-submit { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 15px; cursor: pointer; }
+    
+    /* Modales */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-card { background: white; padding: 20px; border-radius: 8px; width: 85%; max-width: 360px; }
 
     /* Navegación Inferior */
     .bottom-nav {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 55px;
-      background-color: #ffffff;
-      border-top: 1px solid #ccc;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
+      position: fixed; bottom: 0; left: 0; right: 0; height: 55px;
+      background-color: #ffffff; border-top: 1px solid #ccc;
+      display: flex; justify-content: space-around; align-items: center; z-index: 999;
     }
     .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      color: #666;
-      background: none;
-      border: none;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 11px; color: #666; background: none; border: none; cursor: pointer; width: 100%; height: 100%;
     }
     .nav-item.active { background-color: #f1c40f; color: #000; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
+  <!-- Header Global -->
   <div class="top-header">
-    <h2>::RutaCash:: Lista de Clientes</h2>
-    <div class="stats">
-      Cobrado Hoy: <b id="totalCobrado">$0.00</b><br>
-      <span id="fechaHoy"></span>
+    <h2 id="titleHeader">::RutaCash:: Lista de Clientes</h2>
+    <div class="date-badge" id="fechaHoy"></div>
+  </div>
+
+  <!-- PESTAÑA 1: LISTA DE CLIENTES -->
+  <div id="tabClientes" class="tab-content active">
+    <div class="filter-section">
+      <input type="text" id="inputBuscar" class="search-input" placeholder="🔍 Buscar Cliente..." onkeyup="filtrarClientes()">
+      <div class="filter-buttons">
+        <button class="btn-filter active" onclick="setFiltro('TODOS', this)">Todos</button>
+        <button class="btn-filter" onclick="setFiltro('PENDIENTES', this)">Pendientes</button>
+        <button class="btn-filter" onclick="setFiltro('PAGADOS', this)">Pagados Hoy</button>
+        <button class="btn-filter" onclick="setFiltro('ATRASADOS', this)">Atrasados</button>
+      </div>
+    </div>
+    <div id="contenedorLista">
+      <div style="text-align:center; padding: 30px; color:#777;">Cargando lista...</div>
     </div>
   </div>
 
-  <!-- Buscador -->
-  <div class="search-bar">
-    <input type="text" id="inputBuscar" placeholder="Buscar Cliente..." onkeyup="filtrarClientes()">
+  <!-- PESTAÑA 2: RESUMEN FINANCIERO -->
+  <div id="tabResumen" class="tab-content">
+    <div class="summary-box">
+      <div class="summary-row"><span>Fecha de Ruta</span><b id="resFecha">-</b></div>
+      <div class="summary-row"><span>Número de Clientes</span><b id="resNumClientes">0</b></div>
+      <div class="summary-row"><span>Clientes Nuevos Hoy</span><b id="resClientesNuevos">0</b></div>
+      <div class="summary-row"><span>Cobros Realizados</span><b id="resCobrosRealizados">0/0</b></div>
+      <div class="summary-row"><span>Recaudo Esperado (100%)</span><b id="resRecaudoEsperado">$0.00</b></div>
+      <div class="summary-row"><span>Recaudo del Día</span><b id="resRecaudoDia" style="color:#27ae60;">$0.00</b></div>
+      <div class="summary-row"><span>Total Prestado (Capital)</span><b id="resTotalPrestado">$0.00</b></div>
+      <div class="summary-row"><span>Cartera Pendiente por Cobrar</span><b id="resCarteraPendiente" style="color:#e74c3c;">$0.00</b></div>
+    </div>
   </div>
 
-  <!-- Lista de Clientes -->
-  <div class="client-list" id="contenedorLista">
-    <div style="text-align:center; padding: 30px; color:#777;">Cargando clientes...</div>
-  </div>
-
-  <!-- Menú Inferior -->
-  <div class="bottom-nav">
-    <button class="nav-item active">📋 Clientes</button>
-    <button class="nav-item" onclick="abrirModal()">➕ Nuevo</button>
-  </div>
-
-  <!-- Modal Nuevo Cliente -->
-  <div class="modal" id="modalNuevo">
-    <div class="modal-card">
-      <h3>➕ Nuevo Préstamo</h3>
-      
+  <!-- PESTAÑA 3: NUEVO CLIENTE -->
+  <div id="tabNuevo" class="tab-content">
+    <div class="form-container">
+      <h3 style="margin-bottom:12px; color:#3b5998;">➕ Registrar Préstamo</h3>
+      <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="nombre" placeholder="Nombre completo"></div>
+      <div class="form-group"><label>Teléfono (WhatsApp)</label><input type="tel" id="telefono" placeholder="Ej: 5491122334455"></div>
+      <div class="form-group"><label>Monto Prestado / Capital ($)</label><input type="number" id="montoCapital" placeholder="1000" oninput="calcularPrestamo()"></div>
       <div class="form-group">
-        <label>Nombre del Cliente</label>
-        <input type="text" id="nombre" placeholder="Ej: JUAN PEREZ">
-      </div>
-
-      <div class="form-group">
-        <label>Teléfono (WhatsApp)</label>
-        <input type="tel" id="telefono" placeholder="Ej: 5491122334455">
-      </div>
-
-      <div class="form-group">
-        <label>Monto Prestado / Capital ($)</label>
-        <input type="number" id="montoCapital" placeholder="Ej: 1000" oninput="calcularPrestamo()">
-      </div>
-
-      <div class="form-group">
-        <label>Porcentaje de Interés</label>
+        <label>Interés (%)</label>
         <select id="interes" onchange="calcularPrestamo()">
-          <option value="10">10%</option>
-          <option value="15">15%</option>
-          <option value="20" selected>20%</option>
-          <option value="25">25%</option>
-          <option value="30">30%</option>
+          <option value="10">10%</option><option value="15">15%</option>
+          <option value="20" selected>20%</option><option value="25">25%</option><option value="30">30%</option>
         </select>
       </div>
-
       <div class="form-group">
-        <label>Modalidad de Pago</label>
-        <select id="modalidad" onchange="calcularPrestamo()">
-          <option value="Diario" selected>Diario</option>
-          <option value="Semanal">Semanal</option>
-        </select>
+        <label>Modalidad</label>
+        <select id="modalidad"><option value="Diario">Diario</option><option value="Semanal">Semanal</option></select>
       </div>
-
       <div class="form-group">
-        <label>Plazo (Número de cuotas)</label>
-        <select id="plazo" onchange="calcularPrestamo()">
-          <!-- Generado por JS del 1 al 60 -->
-        </select>
+        <label>Plazo (Cuotas)</label>
+        <select id="plazo" onchange="calcularPrestamo()"></select>
       </div>
-
-      <!-- Resumen Calculado -->
       <div class="calc-box">
         <div>Total a Pagar: <b id="calcTotal">$0.00</b></div>
         <div>Valor por Cuota: <b id="calcCuota">$0.00</b></div>
       </div>
-
-      <button class="btn-main" onclick="guardarCliente()">Guardar Préstamo</button>
-      <button class="btn-close" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-submit" onclick="guardarCliente()">Guardar Préstamo</button>
     </div>
+  </div>
+
+  <!-- Modal Admin Password (PIN) -->
+  <div class="modal" id="modalPin">
+    <div class="modal-card">
+      <h3 style="margin-bottom:10px; color:#3b5998;">🔒 Clave de Seguridad</h3>
+      <p style="font-size:12px; color:#666; margin-bottom:10px;">Ingresa el PIN de administrador para editar/eliminar (Por defecto: 1234):</p>
+      <input type="password" id="inputPin" style="width:100%; padding:8px; margin-bottom:12px; font-size:16px; text-align:center;">
+      <button class="btn-submit" onclick="validarPin()">Confirmar</button>
+      <button style="background:#95a5a6; color:white; border:none; padding:8px; border-radius:4px; width:100%; margin-top:5px; cursor:pointer;" onclick="cerrarModalPin()">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Menú Inferior -->
+  <div class="bottom-nav">
+    <button class="nav-item active" onclick="cambiarTab('Clientes', this)">📋 Clientes</button>
+    <button class="nav-item" onclick="cambiarTab('Resumen', this)">📊 Resumen</button>
+    <button class="nav-item" onclick="cambiarTab('Nuevo', this)">➕ Nuevo</button>
   </div>
 
   <!-- Firebase Integration -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCI-s09x6xqiJ3LNoralDmX9GuNtTuSK5k",
@@ -272,146 +222,209 @@
 
     const todayStr = new Date().toISOString().split('T')[0];
     document.getElementById('fechaHoy').innerText = todayStr;
+    document.getElementById('resFecha').innerText = todayStr;
 
     let todosLosClientes = [];
+    let filtroActual = 'TODOS';
+    let accionPendiente = null;
+    const PIN_ADMIN = "1234"; // Contraseña por defecto
 
-    // Poblar Selector de Plazos (1 a 60)
+    // Cargar Plazos (1 a 60)
     const selectPlazo = document.getElementById('plazo');
     for (let i = 1; i <= 60; i++) {
       const opt = document.createElement('option');
-      opt.value = i;
-      opt.innerText = `${i} ${i === 1 ? 'cuota' : 'cuotas'}`;
-      if (i === 24) opt.selected = true; // Valor por defecto 24 cuotas
+      opt.value = i; opt.innerText = `${i} cuotas`;
+      if (i === 24) opt.selected = true;
       selectPlazo.appendChild(opt);
     }
 
-    window.abrirModal = () => document.getElementById('modalNuevo').style.display = 'flex';
-    window.cerrarModal = () => document.getElementById('modalNuevo').style.display = 'none';
-
-    // Función de cálculo automático
-    window.calcularPrestamo = () => {
-      const capital = parseFloat(document.getElementById('montoCapital').value) || 0;
-      const pctInteres = parseFloat(document.getElementById('interes').value) || 0;
-      const numCuotas = parseInt(document.getElementById('plazo').value) || 1;
-
-      const totalPagar = capital + (capital * (pctInteres / 100));
-      const valorCuota = totalPagar / numCuotas;
-
-      document.getElementById('calcTotal').innerText = `$${totalPagar.toFixed(2)}`;
-      document.getElementById('calcCuota').innerText = `$${valorCuota.toFixed(2)}`;
+    // Cambiar Pestañas
+    window.cambiarTab = (tabName, btn) => {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      
+      document.getElementById(`tab${tabName}`).classList.add('active');
+      btn.classList.add('active');
+      document.getElementById('titleHeader').innerText = `::RutaCash:: ${tabName}`;
     };
 
-    // Guardar Cliente
+    // Calculadora
+    window.calcularPrestamo = () => {
+      const capital = parseFloat(document.getElementById('montoCapital').value) || 0;
+      const pct = parseFloat(document.getElementById('interes').value) || 0;
+      const plazo = parseInt(document.getElementById('plazo').value) || 1;
+      const total = capital + (capital * (pct / 100));
+      const cuota = total / plazo;
+      document.getElementById('calcTotal').innerText = `$${total.toFixed(2)}`;
+      document.getElementById('calcCuota').innerText = `$${cuota.toFixed(2)}`;
+    };
+
+    // Guardar Préstamo
     window.guardarCliente = async () => {
       const nombre = document.getElementById('nombre').value;
       const telefono = document.getElementById('telefono').value;
       const capital = parseFloat(document.getElementById('montoCapital').value) || 0;
-      const pctInteres = parseFloat(document.getElementById('interes').value) || 0;
+      const pct = parseFloat(document.getElementById('interes').value) || 0;
       const modalidad = document.getElementById('modalidad').value;
       const plazo = parseInt(document.getElementById('plazo').value) || 1;
 
-      if (!nombre || capital <= 0) return alert("Ingresa un nombre y monto válido.");
+      if (!nombre || capital <= 0) return alert("Completa los datos correctamente.");
 
-      const montoTotal = capital + (capital * (pctInteres / 100));
+      const montoTotal = capital + (capital * (pct / 100));
       const cuota = montoTotal / plazo;
 
       await addDoc(collection(db, "prestamos"), {
-        nombre,
-        telefono,
-        capital,
-        pctInteres,
-        montoTotal,
-        cuota,
-        modalidad,
-        plazo,
+        nombre, telefono, capital, pctInteres: pct,
+        montoTotal, cuota, modalidad, plazo,
         saldoPendiente: montoTotal,
-        ultimoPagoFecha: ""
+        ultimoPagoFecha: "",
+        fechaCreacion: todayStr
       });
 
-      cerrarModal();
+      alert("¡Préstamo registrado!");
       location.reload();
     };
 
-    // Cargar Lista
-    async function cargarClientes() {
+    // Cargar Datos
+    async function cargarDatos() {
       const querySnapshot = await getDocs(collection(db, "prestamos"));
       todosLosClientes = [];
-      let totalCobrado = 0;
+
+      let totalEsperado = 0;
+      let recaudoDia = 0;
+      let totalPrestado = 0;
+      let carteraPendiente = 0;
+      let cobrosHechos = 0;
+      let clientesNuevos = 0;
 
       querySnapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        data.id = docSnap.id;
-        todosLosClientes.push(data);
-        if (data.ultimoPagoFecha === todayStr) {
-          totalCobrado += data.cuota;
+        const c = docSnap.data();
+        c.id = docSnap.id;
+        todosLosClientes.push(c);
+
+        if (c.saldoPendiente > 0) {
+          totalEsperado += c.cuota;
+          carteraPendiente += c.saldoPendiente;
         }
+        totalPrestado += c.capital || 0;
+
+        if (c.ultimoPagoFecha === todayStr) {
+          recaudoDia += c.cuota;
+          cobrosHechos++;
+        }
+
+        if (c.fechaCreacion === todayStr) clientesNuevos++;
       });
 
-      document.getElementById('totalCobrado').innerText = `$${totalCobrado.toFixed(2)}`;
-      renderizarLista(todosLosClientes);
+      // Actualizar Resumen Financiero
+      document.getElementById('resNumClientes').innerText = todosLosClientes.length;
+      document.getElementById('resClientesNuevos').innerText = clientesNuevos;
+      document.getElementById('resCobrosRealizados').innerText = `${cobrosHechos}/${todosLosClientes.length}`;
+      document.getElementById('resRecaudoEsperado').innerText = `$${totalEsperado.toFixed(2)}`;
+      document.getElementById('resRecaudoDia').innerText = `$${recaudoDia.toFixed(2)}`;
+      document.getElementById('resTotalPrestado').innerText = `$${totalPrestado.toFixed(2)}`;
+      document.getElementById('resCarteraPendiente').innerText = `$${carteraPendiente.toFixed(2)}`;
+
+      renderizarLista();
     }
 
     // Renderizar Lista
-    function renderizarLista(lista) {
+    function renderizarLista() {
       const contenedor = document.getElementById('contenedorLista');
       contenedor.innerHTML = '';
 
+      let lista = todosLosClientes.filter(c => {
+        const busqueda = document.getElementById('inputBuscar').value.toLowerCase();
+        const coincideNombre = c.nombre.toLowerCase().includes(busqueda);
+        const pagadoHoy = c.ultimoPagoFecha === todayStr;
+
+        if (!coincideNombre) return false;
+
+        if (filtroActual === 'PENDIENTES') return !pagadoHoy && c.saldoPendiente > 0;
+        if (filtroActual === 'PAGADOS') return pagadoHoy;
+        if (filtroActual === 'ATRASADOS') return !pagadoHoy && c.saldoPendiente > 0; // Se puede ajustar lógica de atrasos
+        return true;
+      });
+
       if (lista.length === 0) {
-        contenedor.innerHTML = `<div style="text-align:center; padding: 20px; color:#888;">No hay clientes registrados</div>`;
+        contenedor.innerHTML = `<div style="text-align:center; padding: 25px; color:#888;">No hay clientes en esta categoría</div>`;
         return;
       }
 
-      lista.forEach((c, index) => {
-        const realizoPagoHoy = c.ultimoPagoFecha === todayStr;
-        
+      lista.forEach((c, idx) => {
+        const pagadoHoy = c.ultimoPagoFecha === todayStr;
         let statusClass = 'status-red';
         let statusIcon = '👤';
 
-        if (c.saldoPendiente <= 0) {
-          statusClass = 'status-grey';
-          statusIcon = '✓';
-        } else if (realizoPagoHoy) {
-          statusClass = 'status-green';
-          statusIcon = '✓';
-        }
+        if (c.saldoPendiente <= 0) { statusClass = 'status-grey'; statusIcon = '✓'; }
+        else if (pagadoHoy) { statusClass = 'status-green'; statusIcon = '✓'; }
 
         const div = document.createElement('div');
         div.className = 'client-card';
         div.innerHTML = `
           <div class="icon-status ${statusClass}">${statusIcon}</div>
           <div class="client-info">
-            <div class="name">${index + 1}. ${c.nombre}</div>
+            <div class="name">${idx + 1}. ${c.nombre}</div>
             <div class="details">
-              Cuota (${c.modalidad || 'Diaria'}): <span>$${c.cuota.toFixed(2)}</span><br>
-              Saldo: <span>$${c.saldoPendiente.toFixed(2)}</span> / $${(c.montoTotal || c.montoPrestado).toFixed(2)}
+              Cuota: <b>$${c.cuota.toFixed(2)}</b> | Saldo: <b>$${c.saldoPendiente.toFixed(2)}</b>
             </div>
           </div>
-          ${!realizoPagoHoy && c.saldoPendiente > 0 ? 
-            `<button class="btn-action" onclick="cobrar('${c.id}', ${c.saldoPendiente}, ${c.cuota})">Cobrar</button>` : 
-            `<span style="font-size:12px; color:#27ae60; font-weight:bold;">${c.saldoPendiente <= 0 ? 'Saldado' : 'Pagado'}</span>`}
+          <div class="actions-group">
+            ${!pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-action" onclick="cobrar('${c.id}', ${c.saldoPendiente}, ${c.cuota})">Cobrar</button>` : ''}
+            <button class="btn-edit" onclick="pedirPin('eliminar', '${c.id}')">🗑️</button>
+          </div>
         `;
         contenedor.appendChild(div);
       });
     }
 
-    // Buscador
-    window.filtrarClientes = () => {
-      const texto = document.getElementById('inputBuscar').value.toLowerCase();
-      const filtrados = todosLosClientes.filter(c => c.nombre.toLowerCase().includes(texto));
-      renderizarLista(filtrados);
+    // Filtros
+    window.setFiltro = (filtro, btn) => {
+      filtroActual = filtro;
+      document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderizarLista();
     };
 
-    // Cobrar
+    window.filtrarClientes = () => renderizarLista();
+
+    // Cobrar Cuota
     window.cobrar = async (id, saldoActual, cuota) => {
       const nuevoSaldo = Math.max(0, saldoActual - cuota);
       await updateDoc(doc(db, "prestamos", id), {
         saldoPendiente: nuevoSaldo,
         ultimoPagoFecha: todayStr
       });
-      location.reload();
+      cargarDatos();
     };
 
-    cargarClientes();
+    // Seguridad PIN para Modificar/Eliminar
+    window.pedirPin = (accion, id) => {
+      accionPendiente = { accion, id };
+      document.getElementById('modalPin').style.display = 'flex';
+    };
+
+    window.cerrarModalPin = () => {
+      document.getElementById('modalPin').style.display = 'none';
+      document.getElementById('inputPin').value = '';
+    };
+
+    window.validarPin = async () => {
+      const pin = document.getElementById('inputPin').value;
+      if (pin === PIN_ADMIN) {
+        cerrarModalPin();
+        if (accionPendiente.accion === 'eliminar') {
+          if (confirm("¿Seguro que deseas eliminar este cliente?")) {
+            await deleteDoc(doc(db, "prestamos", accionPendiente.id));
+            cargarDatos();
+          }
+        }
+      } else {
+        alert("Clave incorrecta.");
+      }
+    };
+
+    cargarDatos();
   </script>
 </body>
 </html>
