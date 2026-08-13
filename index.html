@@ -41,18 +41,17 @@
     /* Contenedor de Lista */
     .client-list { padding-bottom: 70px; }
 
-    /* Tarjeta de Cliente estilo imagen */
+    /* Tarjeta de Cliente */
     .client-card {
       background-color: white;
       padding: 12px 15px;
       display: flex;
       align-items: center;
       border-bottom: 1px solid #e0e0e0;
-      position: relative;
     }
     .client-card:active { background-color: #e9ecef; }
 
-    /* Icono indicador lateral */
+    /* Icono indicador */
     .icon-status {
       width: 32px;
       height: 32px;
@@ -70,7 +69,7 @@
     .status-green { background-color: #2ecc71; } /* Pagado hoy */
     .status-grey { background-color: #95a5a6; }  /* Saldo $0 */
 
-    /* Información del Cliente */
+    /* Información */
     .client-info { flex: 1; }
     .client-info .name {
       font-size: 15px;
@@ -80,12 +79,12 @@
       text-transform: uppercase;
     }
     .client-info .details {
-      font-size: 14px;
+      font-size: 13px;
       color: #555;
     }
     .client-info .details span { font-weight: bold; color: #000; }
 
-    /* Botón de Acción Directa */
+    /* Botón Cobrar */
     .btn-action {
       background-color: #27ae60;
       color: white;
@@ -97,7 +96,7 @@
       cursor: pointer;
     }
 
-    /* Modal Registrar Nuevo */
+    /* Modal Formulario */
     .modal {
       display: none;
       position: fixed;
@@ -111,22 +110,38 @@
       background: white;
       padding: 20px;
       border-radius: 8px;
-      width: 85%;
-      max-width: 380px;
+      width: 90%;
+      max-width: 400px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
-    .modal-card h3 { margin-bottom: 15px; color: #3b5998; }
-    .modal-card input {
+    .modal-card h3 { margin-bottom: 12px; color: #3b5998; }
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 3px; }
+    .form-group input, .form-group select {
       width: 100%;
-      padding: 10px;
-      margin-bottom: 12px;
+      padding: 8px;
       border: 1px solid #ccc;
       border-radius: 4px;
-      font-size: 15px;
+      font-size: 14px;
     }
-    .btn-main { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 15px; margin-bottom: 8px; }
-    .btn-close { background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 4px; width: 100%; font-weight: bold; }
+    
+    /* Resumen Calculado */
+    .calc-box {
+      background-color: #eef2f7;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      border-left: 4px solid #3b5998;
+      font-size: 13px;
+    }
+    .calc-box div { margin-bottom: 3px; }
+    .calc-box b { color: #2c3e50; }
 
-    /* Barra Inferior (Menú) */
+    .btn-main { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 15px; margin-bottom: 8px; cursor: pointer; }
+    .btn-close { background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 4px; width: 100%; font-weight: bold; cursor: pointer; }
+
+    /* Navegación Inferior */
     .bottom-nav {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -183,11 +198,55 @@
   <!-- Modal Nuevo Cliente -->
   <div class="modal" id="modalNuevo">
     <div class="modal-card">
-      <h3>➕ Nuevo Cliente</h3>
-      <input type="text" id="nombre" placeholder="Nombre completo">
-      <input type="tel" id="telefono" placeholder="Teléfono (WhatsApp)">
-      <input type="number" id="montoPrestado" placeholder="Monto del préstamo ($)">
-      <input type="number" id="cuotaDiaria" placeholder="Cuota diaria ($)">
+      <h3>➕ Nuevo Préstamo</h3>
+      
+      <div class="form-group">
+        <label>Nombre del Cliente</label>
+        <input type="text" id="nombre" placeholder="Ej: JUAN PEREZ">
+      </div>
+
+      <div class="form-group">
+        <label>Teléfono (WhatsApp)</label>
+        <input type="tel" id="telefono" placeholder="Ej: 5491122334455">
+      </div>
+
+      <div class="form-group">
+        <label>Monto Prestado / Capital ($)</label>
+        <input type="number" id="montoCapital" placeholder="Ej: 1000" oninput="calcularPrestamo()">
+      </div>
+
+      <div class="form-group">
+        <label>Porcentaje de Interés</label>
+        <select id="interes" onchange="calcularPrestamo()">
+          <option value="10">10%</option>
+          <option value="15">15%</option>
+          <option value="20" selected>20%</option>
+          <option value="25">25%</option>
+          <option value="30">30%</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Modalidad de Pago</label>
+        <select id="modalidad" onchange="calcularPrestamo()">
+          <option value="Diario" selected>Diario</option>
+          <option value="Semanal">Semanal</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Plazo (Número de cuotas)</label>
+        <select id="plazo" onchange="calcularPrestamo()">
+          <!-- Generado por JS del 1 al 60 -->
+        </select>
+      </div>
+
+      <!-- Resumen Calculado -->
+      <div class="calc-box">
+        <div>Total a Pagar: <b id="calcTotal">$0.00</b></div>
+        <div>Valor por Cuota: <b id="calcCuota">$0.00</b></div>
+      </div>
+
       <button class="btn-main" onclick="guardarCliente()">Guardar Préstamo</button>
       <button class="btn-close" onclick="cerrarModal()">Cancelar</button>
     </div>
@@ -216,21 +275,56 @@
 
     let todosLosClientes = [];
 
+    // Poblar Selector de Plazos (1 a 60)
+    const selectPlazo = document.getElementById('plazo');
+    for (let i = 1; i <= 60; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.innerText = `${i} ${i === 1 ? 'cuota' : 'cuotas'}`;
+      if (i === 24) opt.selected = true; // Valor por defecto 24 cuotas
+      selectPlazo.appendChild(opt);
+    }
+
     window.abrirModal = () => document.getElementById('modalNuevo').style.display = 'flex';
     window.cerrarModal = () => document.getElementById('modalNuevo').style.display = 'none';
+
+    // Función de cálculo automático
+    window.calcularPrestamo = () => {
+      const capital = parseFloat(document.getElementById('montoCapital').value) || 0;
+      const pctInteres = parseFloat(document.getElementById('interes').value) || 0;
+      const numCuotas = parseInt(document.getElementById('plazo').value) || 1;
+
+      const totalPagar = capital + (capital * (pctInteres / 100));
+      const valorCuota = totalPagar / numCuotas;
+
+      document.getElementById('calcTotal').innerText = `$${totalPagar.toFixed(2)}`;
+      document.getElementById('calcCuota').innerText = `$${valorCuota.toFixed(2)}`;
+    };
 
     // Guardar Cliente
     window.guardarCliente = async () => {
       const nombre = document.getElementById('nombre').value;
       const telefono = document.getElementById('telefono').value;
-      const montoPrestado = parseFloat(document.getElementById('montoPrestado').value) || 0;
-      const cuota = parseFloat(document.getElementById('cuotaDiaria').value) || 0;
+      const capital = parseFloat(document.getElementById('montoCapital').value) || 0;
+      const pctInteres = parseFloat(document.getElementById('interes').value) || 0;
+      const modalidad = document.getElementById('modalidad').value;
+      const plazo = parseInt(document.getElementById('plazo').value) || 1;
 
-      if (!nombre || montoPrestado <= 0) return alert("Por favor completa los datos obligatorios.");
+      if (!nombre || capital <= 0) return alert("Ingresa un nombre y monto válido.");
+
+      const montoTotal = capital + (capital * (pctInteres / 100));
+      const cuota = montoTotal / plazo;
 
       await addDoc(collection(db, "prestamos"), {
-        nombre, telefono, montoPrestado, cuota,
-        saldoPendiente: montoPrestado,
+        nombre,
+        telefono,
+        capital,
+        pctInteres,
+        montoTotal,
+        cuota,
+        modalidad,
+        plazo,
+        saldoPendiente: montoTotal,
         ultimoPagoFecha: ""
       });
 
@@ -287,7 +381,10 @@
           <div class="icon-status ${statusClass}">${statusIcon}</div>
           <div class="client-info">
             <div class="name">${index + 1}. ${c.nombre}</div>
-            <div class="details">Cuota: <span>$${c.cuota.toFixed(2)}</span> Saldo: <span>$${c.saldoPendiente.toFixed(2)}</span></div>
+            <div class="details">
+              Cuota (${c.modalidad || 'Diaria'}): <span>$${c.cuota.toFixed(2)}</span><br>
+              Saldo: <span>$${c.saldoPendiente.toFixed(2)}</span> / $${(c.montoTotal || c.montoPrestado).toFixed(2)}
+            </div>
           </div>
           ${!realizoPagoHoy && c.saldoPendiente > 0 ? 
             `<button class="btn-action" onclick="cobrar('${c.id}', ${c.saldoPendiente}, ${c.cuota})">Cobrar</button>` : 
@@ -297,7 +394,7 @@
       });
     }
 
-    // Filtrar Buscador
+    // Buscador
     window.filtrarClientes = () => {
       const texto = document.getElementById('inputBuscar').value.toLowerCase();
       const filtrados = todosLosClientes.filter(c => c.nombre.toLowerCase().includes(texto));
