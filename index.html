@@ -2,170 +2,319 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Cobranza Diaria</title>
-
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RutaCash - Lista de Clientes</title>
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
-    #map { height: 100vh; width: 100%; }
+    * { box-sizing: border-box; font-family: sans-serif; margin: 0; padding: 0; }
+    body { background-color: #f2f2f2; -webkit-user-select: none; user-select: none; }
 
-    /* Barra Superior de Resumen */
-    .top-bar {
-      position: absolute; top: 10px; left: 10px; right: 10px; z-index: 1000;
-      background: rgba(255, 255, 255, 0.95); padding: 12px; border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; justify-content: space-between; font-weight: bold;
+    /* Encabezado Azul */
+    .top-header {
+      background-color: #3b5998;
+      color: white;
+      padding: 10px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .top-header h2 { font-size: 18px; font-weight: normal; }
+    .top-header .stats { font-size: 13px; opacity: 0.9; text-align: right; }
+
+    /* Barra de Búsqueda */
+    .search-bar {
+      background-color: #ffffff;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .search-bar input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+      outline: none;
     }
 
-    /* Modales */
+    /* Contenedor de Lista */
+    .client-list { padding-bottom: 70px; }
+
+    /* Tarjeta de Cliente estilo imagen */
+    .client-card {
+      background-color: white;
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #e0e0e0;
+      position: relative;
+    }
+    .client-card:active { background-color: #e9ecef; }
+
+    /* Icono indicador lateral */
+    .icon-status {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      margin-right: 12px;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .status-red { background-color: #e74c3c; }   /* Pendiente hoy */
+    .status-green { background-color: #2ecc71; } /* Pagado hoy */
+    .status-grey { background-color: #95a5a6; }  /* Saldo $0 */
+
+    /* Información del Cliente */
+    .client-info { flex: 1; }
+    .client-info .name {
+      font-size: 15px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .client-info .details {
+      font-size: 14px;
+      color: #555;
+    }
+    .client-info .details span { font-weight: bold; color: #000; }
+
+    /* Botón de Acción Directa */
+    .btn-action {
+      background-color: #27ae60;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Modal Registrar Nuevo */
     .modal {
-      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
     }
-    .modal-card { background: white; padding: 20px; border-radius: 10px; width: 300px; }
-    .modal-card input { width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box; }
-    .btn { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; }
-    .btn-green { background: #27ae60; color: white; }
-    .btn-gray { background: #95a5a6; color: white; }
+    .modal-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 85%;
+      max-width: 380px;
+    }
+    .modal-card h3 { margin-bottom: 15px; color: #3b5998; }
+    .modal-card input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 15px;
+    }
+    .btn-main { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 15px; margin-bottom: 8px; }
+    .btn-close { background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 4px; width: 100%; font-weight: bold; }
+
+    /* Barra Inferior (Menú) */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 55px;
+      background-color: #ffffff;
+      border-top: 1px solid #ccc;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #666;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .nav-item.active { background-color: #f1c40f; color: #000; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <!-- Barra de Control -->
-  <div class="top-bar">
-    <div>Cobrado Hoy: <span id="totalCobrado" style="color:#27ae60;">$0</span></div>
-    <div>Fecha: <span id="fechaHoy"></span></div>
-  </div>
-
-  <div id="map"></div>
-
-  <!-- Modal para Crear Préstamo -->
-  <div class="modal" id="modalNuevoCliente">
-    <div class="modal-card">
-      <h3>➕ Nuevo Préstamo</h3>
-      <input type="text" id="nombre" placeholder="Nombre del Cliente">
-      <input type="tel" id="telefono" placeholder="Teléfono (WhatsApp)">
-      <input type="number" id="montoPrestado" placeholder="Monto Total a Pagar ($)">
-      <input type="number" id="cuotaDiaria" placeholder="Cuota Diaria ($)">
-      <button class="btn btn-green" onclick="guardarCliente()">Guardar Cliente</button>
-      <button class="btn btn-gray" onclick="cerrarModal()">Cancelar</button>
+  <!-- Header -->
+  <div class="top-header">
+    <h2>::RutaCash:: Lista de Clientes</h2>
+    <div class="stats">
+      Cobrado Hoy: <b id="totalCobrado">$0.00</b><br>
+      <span id="fechaHoy"></span>
     </div>
   </div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Buscador -->
+  <div class="search-bar">
+    <input type="text" id="inputBuscar" placeholder="Buscar Cliente..." onkeyup="filtrarClientes()">
+  </div>
 
-  <!-- Firebase SDKs -->
+  <!-- Lista de Clientes -->
+  <div class="client-list" id="contenedorLista">
+    <div style="text-align:center; padding: 30px; color:#777;">Cargando clientes...</div>
+  </div>
+
+  <!-- Menú Inferior -->
+  <div class="bottom-nav">
+    <button class="nav-item active">📋 Clientes</button>
+    <button class="nav-item" onclick="abrirModal()">➕ Nuevo</button>
+  </div>
+
+  <!-- Modal Nuevo Cliente -->
+  <div class="modal" id="modalNuevo">
+    <div class="modal-card">
+      <h3>➕ Nuevo Cliente</h3>
+      <input type="text" id="nombre" placeholder="Nombre completo">
+      <input type="tel" id="telefono" placeholder="Teléfono (WhatsApp)">
+      <input type="number" id="montoPrestado" placeholder="Monto del préstamo ($)">
+      <input type="number" id="cuotaDiaria" placeholder="Cuota diaria ($)">
+      <button class="btn-main" onclick="guardarCliente()">Guardar Préstamo</button>
+      <button class="btn-close" onclick="cerrarModal()">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Firebase Integration -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-   // Configuración Firebase (RutaCash)
-const firebaseConfig = {
-  apiKey: "AIzaSyCI-s09x6xqiJ3LNoralDmX9GuNtTuSK5k",
-  authDomain: "rutacash-44a4a.firebaseapp.com",
-  projectId: "rutacash-44a4a",
-  storageBucket: "rutacash-44a4a.firebasestorage.app",
-  messagingSenderId: "509573274669",
-  appId: "1:509573274669:web:3766c2e5e08962ebe8aca4",
-  measurementId: "G-KKX2RTKF1M"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyCI-s09x6xqiJ3LNoralDmX9GuNtTuSK5k",
+      authDomain: "rutacash-44a4a.firebaseapp.com",
+      projectId: "rutacash-44a4a",
+      storageBucket: "rutacash-44a4a.firebasestorage.app",
+      messagingSenderId: "509573274669",
+      appId: "1:509573274669:web:3766c2e5e08962ebe8aca4",
+      measurementId: "G-KKX2RTKF1M"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let map, coordTemp;
     const todayStr = new Date().toISOString().split('T')[0];
     document.getElementById('fechaHoy').innerText = todayStr;
 
-    // Inicializar Mapa
-    map = L.map('map', { doubleClickZoom: false }).setView([-29.9189, -51.1781], 13);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+    let todosLosClientes = [];
 
-    // Doble clic para agregar punto
-    map.on('dblclick', (e) => {
-      coordTemp = e.latlng;
-      document.getElementById('modalNuevoCliente').style.display = 'flex';
-    });
+    window.abrirModal = () => document.getElementById('modalNuevo').style.display = 'flex';
+    window.cerrarModal = () => document.getElementById('modalNuevo').style.display = 'none';
 
-    window.cerrarModal = () => { document.getElementById('modalNuevoCliente').style.display = 'none'; };
-
-    // Guardar nuevo préstamo
+    // Guardar Cliente
     window.guardarCliente = async () => {
       const nombre = document.getElementById('nombre').value;
       const telefono = document.getElementById('telefono').value;
-      const montoTotal = parseFloat(document.getElementById('montoPrestado').value) || 0;
+      const montoPrestado = parseFloat(document.getElementById('montoPrestado').value) || 0;
       const cuota = parseFloat(document.getElementById('cuotaDiaria').value) || 0;
 
-      if (!nombre || montoTotal <= 0) return alert("Ingresa datos válidos");
+      if (!nombre || montoPrestado <= 0) return alert("Por favor completa los datos obligatorios.");
 
-      const cliente = {
-        nombre, telefono, montoTotal, cuota,
-        saldoPendiente: montoTotal,
-        ultimoPagoFecha: "",
-        lat: coordTemp.lat,
-        lng: coordTemp.lng
-      };
+      await addDoc(collection(db, "prestamos"), {
+        nombre, telefono, montoPrestado, cuota,
+        saldoPendiente: montoPrestado,
+        ultimoPagoFecha: ""
+      });
 
-      await addDoc(collection(db, "prestamos"), cliente);
       cerrarModal();
       location.reload();
     };
 
-    // Cargar préstamos
-    async function cargarPrestamos() {
+    // Cargar Lista
+    async function cargarClientes() {
       const querySnapshot = await getDocs(collection(db, "prestamos"));
-      let acumuladoHoy = 0;
+      todosLosClientes = [];
+      let totalCobrado = 0;
 
       querySnapshot.forEach((docSnap) => {
-        const c = docSnap.data();
-        const id = docSnap.id;
-        const realizoPagoHoy = c.ultimoPagoFecha === todayStr;
-
-        if (realizoPagoHoy) acumuladoHoy += c.cuota;
-
-        const color = realizoPagoHoy ? 'green' : (c.saldoPendiente <= 0 ? 'blue' : 'red');
-
-        const marker = L.circleMarker([c.lat, c.lng], {
-          radius: 10,
-          fillColor: color,
-          color: "#000",
-          weight: 1,
-          fillOpacity: 0.8
-        }).addTo(map);
-
-        const popup = `
-          <b>${c.nombre}</b><br>
-          Saldo: <b>$${c.saldoPendiente}</b><br>
-          Cuota diaria: $${c.cuota}<br><br>
-          ${!realizoPagoHoy && c.saldoPendiente > 0 ? 
-            `<button onclick="cobrarCuota('${id}', ${c.saldoPendiente}, ${c.cuota})" style="background:#27ae60;color:white;border:none;padding:6px;width:100%;border-radius:4px;">💵 Cobrar Cuota ($${c.cuota})</button>` : 
-            `<b style="color:green;">✓ Al día hoy</b>`}
-          <br><br>
-          <a href="https://wa.me/${c.telefono}?text=Hola%20${encodeURIComponent(c.nombre)},%20confirmamos%20tu%20pago.%20Saldo%20pendiente:%20$${c.saldoPendiente - c.cuota}" target="_blank" style="text-decoration:none;">📲 Enviar Recibo</a>
-        `;
-        marker.bindPopup(popup);
+        const data = docSnap.data();
+        data.id = docSnap.id;
+        todosLosClientes.push(data);
+        if (data.ultimoPagoFecha === todayStr) {
+          totalCobrado += data.cuota;
+        }
       });
 
-      document.getElementById('totalCobrado').innerText = `$${acumuladoHoy}`;
+      document.getElementById('totalCobrado').innerText = `$${totalCobrado.toFixed(2)}`;
+      renderizarLista(todosLosClientes);
     }
 
-    // Registrar Cobro
-    window.cobrarCuota = async (id, saldoActual, cuota) => {
-      const nuevoSaldo = Math.max(0, saldoActual - cuota);
-      const clienteRef = doc(db, "prestamos", id);
+    // Renderizar Lista
+    function renderizarLista(lista) {
+      const contenedor = document.getElementById('contenedorLista');
+      contenedor.innerHTML = '';
 
-      await updateDoc(clienteRef, {
+      if (lista.length === 0) {
+        contenedor.innerHTML = `<div style="text-align:center; padding: 20px; color:#888;">No hay clientes registrados</div>`;
+        return;
+      }
+
+      lista.forEach((c, index) => {
+        const realizoPagoHoy = c.ultimoPagoFecha === todayStr;
+        
+        let statusClass = 'status-red';
+        let statusIcon = '👤';
+
+        if (c.saldoPendiente <= 0) {
+          statusClass = 'status-grey';
+          statusIcon = '✓';
+        } else if (realizoPagoHoy) {
+          statusClass = 'status-green';
+          statusIcon = '✓';
+        }
+
+        const div = document.createElement('div');
+        div.className = 'client-card';
+        div.innerHTML = `
+          <div class="icon-status ${statusClass}">${statusIcon}</div>
+          <div class="client-info">
+            <div class="name">${index + 1}. ${c.nombre}</div>
+            <div class="details">Cuota: <span>$${c.cuota.toFixed(2)}</span> Saldo: <span>$${c.saldoPendiente.toFixed(2)}</span></div>
+          </div>
+          ${!realizoPagoHoy && c.saldoPendiente > 0 ? 
+            `<button class="btn-action" onclick="cobrar('${c.id}', ${c.saldoPendiente}, ${c.cuota})">Cobrar</button>` : 
+            `<span style="font-size:12px; color:#27ae60; font-weight:bold;">${c.saldoPendiente <= 0 ? 'Saldado' : 'Pagado'}</span>`}
+        `;
+        contenedor.appendChild(div);
+      });
+    }
+
+    // Filtrar Buscador
+    window.filtrarClientes = () => {
+      const texto = document.getElementById('inputBuscar').value.toLowerCase();
+      const filtrados = todosLosClientes.filter(c => c.nombre.toLowerCase().includes(texto));
+      renderizarLista(filtrados);
+    };
+
+    // Cobrar
+    window.cobrar = async (id, saldoActual, cuota) => {
+      const nuevoSaldo = Math.max(0, saldoActual - cuota);
+      await updateDoc(doc(db, "prestamos", id), {
         saldoPendiente: nuevoSaldo,
         ultimoPagoFecha: todayStr
       });
-
-      alert("¡Pago registrado exitosamente!");
       location.reload();
     };
 
-    cargarPrestamos();
+    cargarClientes();
   </script>
 </body>
 </html>
