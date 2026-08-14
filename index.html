@@ -54,15 +54,14 @@
       width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center;
       justify-content: center; font-weight: bold; color: white; margin-right: 12px; font-size: 13px; flex-shrink: 0;
     }
-    .status-yellow { background-color: #f39c12; } /* Pendiente normal */
-    .status-red { background-color: #e74c3c; }    /* Atrasado >= 5 días */
-    .status-green { background-color: #2ecc71; }  /* Pagado hoy */
-    .status-grey { background-color: #95a5a6; }   /* Saldo 0 */
+    .status-yellow { background-color: #f39c12; }
+    .status-red { background-color: #e74c3c; }
+    .status-green { background-color: #2ecc71; }
+    .status-grey { background-color: #95a5a6; }
 
     .client-info { flex: 1; }
     .client-info .name { font-size: 14px; font-weight: bold; color: #333; text-transform: uppercase; }
     .client-info .details { font-size: 12px; color: #555; margin-top: 2px; }
-    .client-info .details b { color: #000; }
     
     .actions-group { display: flex; gap: 4px; align-items: center; }
     .btn-action { background: #27ae60; color: white; border: none; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; }
@@ -79,14 +78,34 @@
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; }
     .form-group input, .form-group select { width: 100%; padding: 9px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-    .calc-box { background: #eef2f7; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #3b5998; font-size: 13px; }
+    .form-row { display: flex; gap: 8px; }
+    .form-row .form-group { flex: 1; }
 
+    .input-with-btn { display: flex; gap: 6px; }
+    .input-with-btn input { flex: 1; }
+    .btn-mapa {
+      background-color: #0288d1; color: white; border: none; padding: 8px 10px;
+      border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; white-space: nowrap;
+    }
+
+    .preview-fachada {
+      width: 100%; max-height: 180px; object-fit: cover; border-radius: 6px;
+      margin-top: 6px; display: none; border: 1px solid #ddd;
+    }
+
+    .calc-box { background: #eef2f7; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #3b5998; font-size: 13px; }
     .btn-submit { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 15px; cursor: pointer; }
     .btn-close-box { background: #e67e22; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 10px; }
     
     /* Modales */
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-    .modal-card { background: white; padding: 20px; border-radius: 8px; width: 85%; max-width: 380px; max-height: 90vh; overflow-y: auto; }
+    .modal-card { background: white; padding: 18px; border-radius: 8px; width: 90%; max-width: 420px; max-height: 92vh; overflow-y: auto; }
+
+    /* Estilos Modal Cobro Avanzado */
+    .header-cobro-cliente h3 { margin-bottom: 2px; color: #3b5998; font-size: 16px; text-transform: uppercase; }
+    .info-cuotas-box { background: #f8f9fa; padding: 8px; border-radius: 4px; font-size: 12px; color: #444; margin-bottom: 10px; border: 1px solid #e2e8f0; }
+    .radio-group-cobro { display: flex; gap: 15px; background: #eef2f7; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-weight: bold; font-size: 13px; }
+    .radio-group-cobro label { cursor: pointer; display: flex; align-items: center; gap: 4px; }
 
     /* Navegación Inferior */
     .bottom-nav {
@@ -176,9 +195,7 @@
 
       <div class="form-group">
         <label>Categoría</label>
-        <select id="categoriaMovimiento">
-          <!-- Opciones dinámicas según tipo -->
-        </select>
+        <select id="categoriaMovimiento"></select>
       </div>
 
       <div class="form-group">
@@ -188,27 +205,50 @@
 
       <div class="form-group">
         <label>Nota / Detalle Adicional (Opcional)</label>
-        <input type="text" id="conceptoMovimiento" placeholder="Ej: Pago mes de agosto local, factura #123, etc.">
+        <input type="text" id="conceptoMovimiento" placeholder="Ej: Pago mes de agosto local, etc.">
       </div>
 
       <button class="btn-submit" onclick="guardarMovimiento()">Guardar Movimiento</button>
     </div>
 
-    <!-- Lista de movimientos de hoy -->
     <div class="form-container" style="margin-top: 15px;">
       <h4 style="margin-bottom:10px; color:#555;">📋 Movimientos del Día</h4>
-      <div id="listaMovimientosHoy" style="font-size:13px; color:#666;">
-        Cargando movimientos...
-      </div>
+      <div id="listaMovimientosHoy" style="font-size:13px; color:#666;">Cargando movimientos...</div>
     </div>
   </div>
 
-  <!-- PESTAÑA 4: NUEVO CLIENTE -->
+  <!-- PESTAÑA 4: NUEVO CLIENTE CON UBICACIÓN Y FACHADA -->
   <div id="tabNuevo" class="tab-content">
     <div class="form-container">
-      <h3 style="margin-bottom:12px; color:#3b5998;">➕ Registrar Préstamo</h3>
+      <h3 style="margin-bottom:12px; color:#3b5998;">➕ Registrar Préstamo y Cliente</h3>
+      
       <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="nombre" placeholder="Nombre completo"></div>
       <div class="form-group"><label>Teléfono (WhatsApp)</label><input type="tel" id="telefono" placeholder="Ej: 5491122334455"></div>
+      
+      <!-- Ubicación y Rutas -->
+      <div class="form-group">
+        <label>🏠 Dirección de Residencia</label>
+        <div class="input-with-btn">
+          <input type="text" id="dirResidencia" placeholder="Ej: Calle 10 # 4-20">
+          <button type="button" class="btn-mapa" onclick="abrirMapa('dirResidencia')">🗺️ Ruta</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>🏪 Dirección Local / Negocio</label>
+        <div class="input-with-btn">
+          <input type="text" id="dirLocal" placeholder="Ej: Av. Principal # 15-30">
+          <button type="button" class="btn-mapa" onclick="abrirMapa('dirLocal')">🗺️ Ruta</button>
+        </div>
+      </div>
+
+      <!-- Foto de Fachada -->
+      <div class="form-group">
+        <label>📸 Foto de la Fachada (Casa / Local)</label>
+        <input type="file" id="inputFotoFachada" accept="image/*" capture="environment" onchange="previewImagenFachada(event)">
+        <img id="previewFoto" class="preview-fachada" alt="Vista previa fachada">
+      </div>
+
       <div class="form-group"><label>Monto Prestado / Capital ($)</label><input type="number" id="montoCapital" placeholder="1000" oninput="calcularPrestamo()"></div>
       <div class="form-group">
         <label>Interés (%)</label>
@@ -225,11 +265,89 @@
         <label>Plazo (Cuotas)</label>
         <select id="plazo" onchange="calcularPrestamo()"></select>
       </div>
+      
       <div class="calc-box">
         <div>Total a Pagar: <b id="calcTotal">$0.00</b></div>
         <div>Valor por Cuota: <b id="calcCuota">$0.00</b></div>
       </div>
       <button class="btn-submit" onclick="guardarCliente()">Guardar Préstamo</button>
+    </div>
+  </div>
+
+  <!-- MODAL INGRESO DE COBRO (CUOTA, ABONO, NO PAGO) -->
+  <div class="modal" id="modalCobroAvanzado">
+    <div class="modal-card">
+      <div class="header-cobro-cliente">
+        <h3 id="mcNombre">Cliente</h3>
+        <div class="info-cuotas-box">
+          <div>Cuotas Pagadas: <b id="mcPagadas">0</b>/<b id="mcTotales">0</b> | Atrasadas: <b id="mcAtrasadas" style="color:#e74c3c;">0</b></div>
+          <div>Pendientes: <b id="mcPendientes">0</b></div>
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:10px; font-size:12px;">
+          <a id="mcBtnTel" href="#" style="color:#0288d1; text-decoration:none;">📞 Llamar</a>
+          <button id="mcBtnRutaRes" class="btn-mapa" style="padding:2px 6px;">🏠 Ruta Casa</button>
+          <button id="mcBtnRutaLoc" class="btn-mapa" style="padding:2px 6px;">🏪 Ruta Local</button>
+        </div>
+        <img id="mcFotoFachada" class="preview-fachada" style="margin-bottom:10px;" alt="Fachada">
+      </div>
+
+      <!-- Selector de Modo -->
+      <div class="radio-group-cobro">
+        <label><input type="radio" name="modoCobro" value="cuota" checked onchange="cambiarModoCobro('cuota')"> Cuota</label>
+        <label><input type="radio" name="modoCobro" value="abono" onchange="cambiarModoCobro('abono')"> Abono</label>
+        <label><input type="radio" name="modoCobro" value="nopago" onchange="cambiarModoCobro('nopago')"> No Pago</label>
+      </div>
+
+      <input type="hidden" id="mcClienteId">
+      <input type="hidden" id="mcCuotaBase">
+
+      <div class="form-group">
+        <label>Producto / Crédito</label>
+        <input type="text" id="mcProducto" value="CRÉDITO EN EFECTIVO" readonly>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group"><label>Total Venta</label><input type="number" id="mcTotalVenta" readonly></div>
+        <div class="form-group"><label>Saldo Actual</label><input type="number" id="mcSaldoActual" readonly></div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Valor a Pagar (*)</label>
+          <input type="number" id="mcValorPagar" step="0.01" oninput="recalcularModalCobro()" readonly>
+        </div>
+        <div class="form-group">
+          <label>Nº de Cuotas</label>
+          <input type="number" id="mcNumCuotas" value="1" min="1" oninput="recalcularModalCobro()">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nuevo Saldo</label>
+          <input type="number" id="mcNuevoSaldo" style="color:#c0392b; font-weight:bold;" readonly>
+        </div>
+        <div class="form-group">
+          <label>Total Sanción ($)</label>
+          <input type="number" id="mcSancion" value="0.00" oninput="recalcularModalCobro()">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Forma de Pago</label>
+        <select id="mcFormaPago">
+          <option value="Efectivo">1-> Efectivo</option>
+          <option value="Transferencia">2-> Transferencia / Nequi</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Observaciones</label>
+        <input type="text" id="mcObservaciones" placeholder="Ej: No estaba, prometió pagar mañana...">
+      </div>
+
+      <button class="btn-submit" onclick="confirmarIngresoCobro()">✔ GUARDAR COBRO</button>
+      <button style="background:#95a5a6; color:white; border:none; padding:8px; border-radius:4px; width:100%; margin-top:5px; cursor:pointer;" onclick="cerrarModalCobro()">Cancelar</button>
     </div>
   </div>
 
@@ -301,6 +419,7 @@
     let baseInicialCaja = 0;
     let totalEgresos = 0;
     let totalIngresos = 0;
+    let fotoFachadaBase64 = "";
 
     // Cargar Plazos (1 a 60)
     const selectPlazo = document.getElementById('plazo');
@@ -311,76 +430,85 @@
       selectPlazo.appendChild(opt);
     }
 
-    // --- MANEJO DE CATEGORÍAS DINÁMICAS ---
+    // --- MANEJO DE MAPAS Y RUTAS ---
+    window.abrirMapa = (idInput) => {
+      const direccion = document.getElementById(idInput).value.trim();
+      if (!direccion) return alert("Por favor ingresa una dirección primero.");
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(direccion)}`, '_blank');
+    };
+
+    window.abrirMapaTexto = (dir) => {
+      if (!dir) return alert("Este cliente no tiene registrada esa dirección.");
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dir)}`, '_blank');
+    };
+
+    // --- MANEJO DE IMAGEN FACHADA ---
+    window.previewImagenFachada = (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          fotoFachadaBase64 = e.target.result;
+          const img = document.getElementById('previewFoto');
+          img.src = fotoFachadaBase64;
+          img.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    // --- CATEGORÍAS ---
     const categoriasEgreso = [
-      "🏠 Alquiler / Renta (Local, Oficina, Casa)",
-      "⛽ Gasolina / Combustible",
-      "🔧 Reparación / Mantenimiento Moto",
-      "🍟 Alimentación / Almuerzo / Refresco",
-      "💳 Pago Cuota Préstamo / Intereses",
-      "📦 Papelería / Tarjetas / Impresiones",
-      "📱 Recarga Celular / Datos",
-      "🛑 Peajes / Estacionamiento",
-      "💸 Retiro de Capital / Ganancia",
-      "❓ Otro Gasto"
+      "🏠 Alquiler / Renta (Local, Oficina, Casa)", "⛽ Gasolina / Combustible",
+      "🔧 Reparación / Mantenimiento Moto", "🍟 Alimentación / Almuerzo / Refresco",
+      "💳 Pago Cuota Préstamo / Intereses", "📦 Papelería / Tarjetas / Impresiones",
+      "📱 Recarga Celular / Datos", "🛑 Peajes / Estacionamiento",
+      "💸 Retiro de Capital / Ganancia", "❓ Otro Gasto"
     ];
 
     const categoriasIngreso = [
-      "💵 Inversión / Capital Inicial",
-      "🔄 Reposición / Reembolso de Gasto",
-      "📈 Cobro Interés Extra / Comisión",
-      "💰 Préstamo Recibido",
-      "❓ Otro Ingreso"
+      "💵 Inversión / Capital Inicial", "🔄 Reposición / Reembolso de Gasto",
+      "📈 Cobro Interés Extra / Comisión", "💰 Préstamo Recibido", "❓ Otro Ingreso"
     ];
 
     window.actualizarCategorias = () => {
       const tipo = document.getElementById('tipoMovimiento').value;
       const selectCat = document.getElementById('categoriaMovimiento');
       selectCat.innerHTML = '';
-      
       const lista = (tipo === 'EGRESO') ? categoriasEgreso : categoriasIngreso;
       lista.forEach(cat => {
         const opt = document.createElement('option');
-        opt.value = cat;
-        opt.innerText = cat;
+        opt.value = cat; opt.innerText = cat;
         selectCat.appendChild(opt);
       });
     };
-    actualizarCategorias(); // Cargar al inicio
+    actualizarCategorias();
 
-    // --- CÁLCULO DE DÍAS HÁBILES DE ATRASO (SIN CONTAR DOMINGOS) ---
     function calcularDiasAtrasoSinDomingos(fechaReferenciaStr) {
       if (!fechaReferenciaStr) return 0;
       const fInicio = new Date(fechaReferenciaStr + 'T00:00:00');
       const fHoy = new Date(todayStr + 'T00:00:00');
-      
       let diasAtraso = 0;
       let aux = new Date(fInicio);
       aux.setDate(aux.getDate() + 1);
-
       while (aux <= fHoy) {
-        if (aux.getDay() !== 0) { // 0 es Domingo
-          diasAtraso++;
-        }
+        if (aux.getDay() !== 0) diasAtraso++;
         aux.setDate(aux.getDate() + 1);
       }
       return diasAtraso;
     }
 
-    // --- AUTENTICACIÓN Y SESIÓN ÚNICA ---
+    // --- SESIÓN ---
     window.iniciarSesion = async () => {
       let alias = document.getElementById('loginAlias').value.trim().toLowerCase();
       const pass = document.getElementById('loginPassword').value;
-
       if (!alias) return alert("Ingresa tu usuario / alias");
       const email = alias.includes('@') ? alias : `${alias}@rutacash.com`;
-
       try {
         const userCred = await signInWithEmailAndPassword(auth, email, pass);
         const newSessionId = 'sess_' + Math.random().toString(36).substring(2) + Date.now();
         localStorage.setItem('rutacash_session_id', newSessionId);
         localSessionId = newSessionId;
-
         await setDoc(doc(db, "sesiones", userCred.user.uid), { activeSessionId: newSessionId });
       } catch (e) {
         alert("Error de acceso: Usuario o contraseña incorrectos.");
@@ -395,25 +523,19 @@
     onAuthStateChanged(auth, (user) => {
       if (user) {
         document.getElementById('screenLogin').style.display = 'none';
-        
         if (unsubscribeSession) unsubscribeSession();
         unsubscribeSession = onSnapshot(doc(db, "sesiones", user.uid), (docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.activeSessionId && data.activeSessionId !== localStorage.getItem('rutacash_session_id')) {
-              alert("Tu sesión ha sido abierta en otro dispositivo.");
-              cerrarSesion();
-            }
+          if (docSnap.exists() && docSnap.data().activeSessionId !== localStorage.getItem('rutacash_session_id')) {
+            alert("Tu sesión ha sido abierta en otro dispositivo.");
+            cerrarSesion();
           }
         });
-
         cargarDatos();
       } else {
         document.getElementById('screenLogin').style.display = 'flex';
       }
     });
 
-    // --- NAVEGACIÓN Y CÁLCULOS ---
     window.cambiarTab = (tabName, btn) => {
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -435,6 +557,8 @@
     window.guardarCliente = async () => {
       const nombre = document.getElementById('nombre').value;
       const telefono = document.getElementById('telefono').value;
+      const dirResidencia = document.getElementById('dirResidencia').value;
+      const dirLocal = document.getElementById('dirLocal').value;
       const capital = parseFloat(document.getElementById('montoCapital').value) || 0;
       const pct = parseFloat(document.getElementById('interes').value) || 0;
       const modalidad = document.getElementById('modalidad').value;
@@ -446,14 +570,13 @@
       const cuota = montoTotal / plazo;
 
       await addDoc(collection(db, "prestamos"), {
-        nombre, telefono, capital, pctInteres: pct,
-        montoTotal, cuota, modalidad, plazo,
-        saldoPendiente: montoTotal,
-        ultimoPagoFecha: "",
-        fechaCreacion: todayStr
+        nombre, telefono, dirResidencia, dirLocal, fotoFachada: fotoFachadaBase64,
+        capital, pctInteres: pct, montoTotal, cuota, modalidad, plazo,
+        saldoPendiente: montoTotal, ultimoPagoFecha: "", fechaCreacion: todayStr,
+        totalAbonadoHoy: 0
       });
 
-      alert("¡Préstamo registrado!");
+      alert("¡Préstamo registrado exitosamente!");
       location.reload();
     };
 
@@ -476,15 +599,11 @@
     };
 
     async function cargarDatos() {
-      // 1. Base Inicial de Caja
       const cajaSnap = await getDoc(doc(db, "caja", todayStr));
       baseInicialCaja = cajaSnap.exists() ? (cajaSnap.data().baseInicial || 0) : 0;
 
-      // 2. Movimientos del Día (Gastos e Ingresos)
       const movSnap = await getDocs(collection(db, "movimientos"));
-      totalEgresos = 0;
-      totalIngresos = 0;
-      
+      totalEgresos = 0; totalIngresos = 0;
       const contenedorMovs = document.getElementById('listaMovimientosHoy');
       contenedorMovs.innerHTML = '';
       let huboMovs = false;
@@ -495,35 +614,19 @@
           huboMovs = true;
           if (m.tipo === 'EGRESO') totalEgresos += m.monto;
           if (m.tipo === 'INGRESO') totalIngresos += m.monto;
-
           const color = m.tipo === 'EGRESO' ? '#e74c3c' : '#27ae60';
           const signo = m.tipo === 'EGRESO' ? '-' : '+';
           const div = document.createElement('div');
           div.style.cssText = "padding:6px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between;";
-          div.innerHTML = `
-            <div>
-              <b>${m.categoria}</b> ${m.nota ? `<small>(${m.nota})</small>` : ''}
-            </div>
-            <b style="color:${color};">${signo}$${m.monto.toFixed(2)}</b>
-          `;
+          div.innerHTML = `<div><b>${m.categoria}</b> ${m.nota ? `<small>(${m.nota})</small>` : ''}</div><b style="color:${color};">${signo}$${m.monto.toFixed(2)}</b>`;
           contenedorMovs.appendChild(div);
         }
       });
+      if (!huboMovs) contenedorMovs.innerHTML = '<span style="color:#aaa;">No hay movimientos registrados hoy</span>';
 
-      if (!huboMovs) {
-        contenedorMovs.innerHTML = '<span style="color:#aaa;">No hay movimientos registrados hoy</span>';
-      }
-
-      // 3. Préstamos
       const querySnapshot = await getDocs(collection(db, "prestamos"));
       todosLosClientes = [];
-
-      let totalEsperado = 0;
-      let recaudoDia = 0;
-      let totalPrestado = 0;
-      let carteraPendiente = 0;
-      let cobrosHechos = 0;
-      let clientesNuevos = 0;
+      let totalEsperado = 0, recaudoDia = 0, totalPrestado = 0, carteraPendiente = 0, cobrosHechos = 0, clientesNuevos = 0;
 
       querySnapshot.forEach((docSnap) => {
         const c = docSnap.data();
@@ -537,10 +640,9 @@
         totalPrestado += c.capital || 0;
 
         if (c.ultimoPagoFecha === todayStr) {
-          recaudoDia += c.cuota;
+          recaudoDia += c.totalAbonadoHoy || c.cuota;
           cobrosHechos++;
         }
-
         if (c.fechaCreacion === todayStr) clientesNuevos++;
       });
 
@@ -551,7 +653,6 @@
       document.getElementById('resIngresos').innerText = `+$${totalIngresos.toFixed(2)}`;
       document.getElementById('resEgresos').innerText = `-$${totalEgresos.toFixed(2)}`;
       document.getElementById('resCajaActual').innerText = `$${efectivoCaja.toFixed(2)}`;
-
       document.getElementById('resNumClientes').innerText = todosLosClientes.length;
       document.getElementById('resClientesNuevos').innerText = clientesNuevos;
       document.getElementById('resCobrosRealizados').innerText = `${cobrosHechos}/${todosLosClientes.length}`;
@@ -570,13 +671,11 @@
         const busqueda = document.getElementById('inputBuscar').value.toLowerCase();
         const coincideNombre = c.nombre.toLowerCase().includes(busqueda);
         const pagadoHoy = c.ultimoPagoFecha === todayStr;
-
         const fechaReferencia = c.ultimoPagoFecha || c.fechaCreacion;
         const diasSinPagar = calcularDiasAtrasoSinDomingos(fechaReferencia);
         const esAtrasado5Dias = !pagadoHoy && c.saldoPendiente > 0 && diasSinPagar >= 5;
 
         if (!coincideNombre) return false;
-
         if (filtroActual === 'PENDIENTES') return !pagadoHoy && c.saldoPendiente > 0;
         if (filtroActual === 'PAGADOS') return pagadoHoy;
         if (filtroActual === 'ATRASADOS') return esAtrasado5Dias;
@@ -596,15 +695,9 @@
         let statusClass = 'status-yellow';
         let statusIcon = '👤';
 
-        if (c.saldoPendiente <= 0) { 
-          statusClass = 'status-grey'; 
-          statusIcon = '✓'; 
-        } else if (pagadoHoy) { 
-          statusClass = 'status-green'; 
-          statusIcon = '✓'; 
-        } else if (diasSinPagar >= 5) {
-          statusClass = 'status-red';
-        }
+        if (c.saldoPendiente <= 0) { statusClass = 'status-grey'; statusIcon = '✓'; }
+        else if (pagadoHoy) { statusClass = 'status-green'; statusIcon = '✓'; }
+        else if (diasSinPagar >= 5) { statusClass = 'status-red'; }
 
         const div = document.createElement('div');
         div.className = 'client-card';
@@ -612,12 +705,10 @@
           <div class="icon-status ${statusClass}">${statusIcon}</div>
           <div class="client-info">
             <div class="name">${idx + 1}. ${c.nombre}</div>
-            <div class="details">
-              Cuota: <b>$${c.cuota.toFixed(2)}</b> | Saldo: <b>$${c.saldoPendiente.toFixed(2)}</b>
-            </div>
+            <div class="details">Cuota: <b>$${c.cuota.toFixed(2)}</b> | Saldo: <b>$${c.saldoPendiente.toFixed(2)}</b></div>
           </div>
           <div class="actions-group">
-            ${!pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-action" onclick="cobrar('${c.id}', ${c.saldoPendiente}, ${c.cuota})">Cobrar</button>` : ''}
+            ${!pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-action" onclick="abrirModalCobro('${c.id}')">Cobrar</button>` : ''}
             <button class="btn-edit" onclick="pedirPin('editar', '${c.id}')">✏️</button>
             <button class="btn-delete" onclick="pedirPin('eliminar', '${c.id}')">🗑️</button>
           </div>
@@ -635,12 +726,108 @@
 
     window.filtrarClientes = () => renderizarLista();
 
-    window.cobrar = async (id, saldoActual, cuota) => {
-      const nuevoSaldo = Math.max(0, saldoActual - cuota);
+    // --- MODAL DE COBRO COMPLETO Y LÓGICA DE COBRANZA ---
+    window.abrirModalCobro = (id) => {
+      const c = todosLosClientes.find(x => x.id === id);
+      if (!c) return;
+
+      document.getElementById('mcClienteId').value = c.id;
+      document.getElementById('mcNombre').innerText = c.nombre;
+      
+      const cuotasPagadas = Math.floor((c.montoTotal - c.saldoPendiente) / c.cuota);
+      const cuotasTotales = c.plazo || 1;
+      const cuotasPendientes = Math.ceil(c.saldoPendiente / c.cuota);
+      const diasAtraso = calcularDiasAtrasoSinDomingos(c.ultimoPagoFecha || c.fechaCreacion);
+
+      document.getElementById('mcPagadas').innerText = cuotasPagadas;
+      document.getElementById('mcTotales').innerText = cuotasTotales;
+      document.getElementById('mcAtrasadas').innerText = diasAtraso;
+      document.getElementById('mcPendientes').innerText = cuotasPendientes;
+
+      document.getElementById('mcBtnTel').href = `tel:${c.telefono || ''}`;
+      document.getElementById('mcBtnRutaRes').onclick = () => abrirMapaTexto(c.dirResidencia);
+      document.getElementById('mcBtnRutaLoc').onclick = () => abrirMapaTexto(c.dirLocal);
+
+      const imgFachada = document.getElementById('mcFotoFachada');
+      if (c.fotoFachada) {
+        imgFachada.src = c.fotoFachada;
+        imgFachada.style.display = 'block';
+      } else {
+        imgFachada.style.display = 'none';
+      }
+
+      document.getElementById('mcTotalVenta').value = c.montoTotal.toFixed(2);
+      document.getElementById('mcSaldoActual').value = c.saldoPendiente.toFixed(2);
+      document.getElementById('mcCuotaBase').value = c.cuota;
+
+      document.querySelector('input[name="modoCobro"][value="cuota"]').checked = true;
+      cambiarModoCobro('cuota');
+
+      document.getElementById('modalCobroAvanzado').style.display = 'flex';
+    };
+
+    window.cerrarModalCobro = () => {
+      document.getElementById('modalCobroAvanzado').style.display = 'none';
+    };
+
+    window.cambiarModoCobro = (modo) => {
+      const inputValor = document.getElementById('mcValorPagar');
+      const inputCuotas = document.getElementById('mcNumCuotas');
+
+      if (modo === 'cuota') {
+        inputCuotas.disabled = false;
+        inputCuotas.value = 1;
+        inputValor.readOnly = true;
+      } else if (modo === 'abono') {
+        inputCuotas.disabled = true;
+        inputCuotas.value = 0;
+        inputValor.readOnly = false;
+      } else if (modo === 'nopago') {
+        inputCuotas.disabled = true;
+        inputCuotas.value = 0;
+        inputValor.value = (0).toFixed(2);
+        inputValor.readOnly = true;
+      }
+      recalcularModalCobro();
+    };
+
+    window.recalcularModalCobro = () => {
+      const modo = document.querySelector('input[name="modoCobro"]:checked').value;
+      const saldoActual = parseFloat(document.getElementById('mcSaldoActual').value) || 0;
+      const cuotaBase = parseFloat(document.getElementById('mcCuotaBase').value) || 0;
+      const sancion = parseFloat(document.getElementById('mcSancion').value) || 0;
+
+      let valorPagar = 0;
+
+      if (modo === 'cuota') {
+        const cantCuotas = parseInt(document.getElementById('mcNumCuotas').value) || 0;
+        valorPagar = cantCuotas * cuotaBase;
+        document.getElementById('mcValorPagar').value = valorPagar.toFixed(2);
+      } else if (modo === 'abono') {
+        valorPagar = parseFloat(document.getElementById('mcValorPagar').value) || 0;
+      } else if (modo === 'nopago') {
+        valorPagar = 0;
+      }
+
+      const nuevoSaldo = Math.max(0, saldoActual - valorPagar + sancion);
+      document.getElementById('mcNuevoSaldo').value = nuevoSaldo.toFixed(2);
+    };
+
+    window.confirmarIngresoCobro = async () => {
+      const id = document.getElementById('mcClienteId').value;
+      const nuevoSaldo = parseFloat(document.getElementById('mcNuevoSaldo').value) || 0;
+      const valorAbonado = parseFloat(document.getElementById('mcValorPagar').value) || 0;
+      const observaciones = document.getElementById('mcObservaciones').value;
+
       await updateDoc(doc(db, "prestamos", id), {
         saldoPendiente: nuevoSaldo,
-        ultimoPagoFecha: todayStr
+        ultimoPagoFecha: todayStr,
+        totalAbonadoHoy: valorAbonado,
+        ultimaObservacion: observaciones
       });
+
+      cerrarModalCobro();
+      alert("¡Registro de cobro guardado correctamente!");
       cargarDatos();
     };
 
