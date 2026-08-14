@@ -65,6 +65,7 @@
     
     .actions-group { display: flex; gap: 4px; align-items: center; }
     .btn-action { background: #27ae60; color: white; border: none; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; }
+    .btn-undo { background: #e67e22; color: white; border: none; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; }
     .btn-edit { background: #3498db; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
     .btn-delete { background: #e74c3c; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
 
@@ -354,7 +355,7 @@
   <!-- Modal Editar Cliente -->
   <div class="modal" id="modalEditar">
     <div class="modal-card">
-      <h3 style="margin-bottom:10px; color:#3b5998;">✏️ Editar Cliente</h3>
+      <h3 style="margin-bottom:10px; color:#3b5998;">✏️ Editar Cliente / Saldo</h3>
       <input type="hidden" id="editId">
       <div class="form-group"><label>Nombre</label><input type="text" id="editNombre"></div>
       <div class="form-group"><label>Teléfono</label><input type="tel" id="editTelefono"></div>
@@ -640,7 +641,7 @@
         totalPrestado += c.capital || 0;
 
         if (c.ultimoPagoFecha === todayStr) {
-          recaudoDia += c.totalAbonadoHoy || c.cuota;
+          recaudoDia += c.totalAbonadoHoy || 0;
           cobrosHechos++;
         }
         if (c.fechaCreacion === todayStr) clientesNuevos++;
@@ -708,7 +709,8 @@
             <div class="details">Cuota: <b>$${c.cuota.toFixed(2)}</b> | Saldo: <b>$${c.saldoPendiente.toFixed(2)}</b></div>
           </div>
           <div class="actions-group">
-            ${!pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-action" onclick="abrirModalCobro('${c.id}')">Cobrar</button>` : ''}
+            ${!pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-action" onclick="abrirModalCobro('${c.id}')">Ingresar Pago</button>` : ''}
+            ${pagadoHoy ? `<button class="btn-undo" title="Quitar Pago Inmediatamente" onclick="quitarPagoInmediato('${c.id}')">❌ Quitar Pago</button>` : ''}
             <button class="btn-edit" onclick="pedirPin('editar', '${c.id}')">✏️</button>
             <button class="btn-delete" onclick="pedirPin('eliminar', '${c.id}')">🗑️</button>
           </div>
@@ -829,6 +831,27 @@
       cerrarModalCobro();
       alert("¡Registro de cobro guardado correctamente!");
       cargarDatos();
+    };
+
+    // --- QUITAR PAGO DIRECTAMENTE SIN CÓDIGO (DURANTE LA CAJA ABIERTA DEL DÍA) ---
+    window.quitarPagoInmediato = async (id) => {
+      const c = todosLosClientes.find(x => x.id === id);
+      if (!c) return;
+
+      if (confirm(`¿Deseas quitar el pago ingresado hoy a ${c.nombre}?`)) {
+        const montoAbonado = c.totalAbonadoHoy || 0;
+        const saldoRestaurado = c.saldoPendiente + montoAbonado;
+
+        await updateDoc(doc(db, "prestamos", id), {
+          saldoPendiente: saldoRestaurado,
+          ultimoPagoFecha: "",
+          totalAbonadoHoy: 0,
+          ultimaObservacion: "Pago quitado durante el turno de hoy"
+        });
+
+        alert(`¡Pago retirado correctamente!\nSe devolvieron $${montoAbonado.toFixed(2)} al saldo de ${c.nombre}.`);
+        cargarDatos();
+      }
     };
 
     window.realizarCierreCaja = async () => {
