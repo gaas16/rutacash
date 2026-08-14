@@ -54,18 +54,20 @@
       width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center;
       justify-content: center; font-weight: bold; color: white; margin-right: 12px; font-size: 13px; flex-shrink: 0;
     }
-    .status-red { background-color: #e74c3c; }
-    .status-green { background-color: #2ecc71; }
-    .status-grey { background-color: #95a5a6; }
+    .status-yellow { background-color: #f39c12; } /* Pendiente normal */
+    .status-red { background-color: #e74c3c; }    /* Atrasado >= 5 días */
+    .status-green { background-color: #2ecc71; }  /* Pagado hoy */
+    .status-grey { background-color: #95a5a6; }   /* Saldo 0 */
 
     .client-info { flex: 1; }
     .client-info .name { font-size: 14px; font-weight: bold; color: #333; text-transform: uppercase; }
     .client-info .details { font-size: 12px; color: #555; margin-top: 2px; }
     .client-info .details b { color: #000; }
     
-    .actions-group { display: flex; gap: 5px; align-items: center; }
+    .actions-group { display: flex; gap: 4px; align-items: center; }
     .btn-action { background: #27ae60; color: white; border: none; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; }
-    .btn-edit { background: #e74c3c; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+    .btn-edit { background: #3498db; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+    .btn-delete { background: #e74c3c; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
 
     /* Resumen Financiero */
     .summary-box { background: white; margin: 10px; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
@@ -80,10 +82,11 @@
     .calc-box { background: #eef2f7; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #3b5998; font-size: 13px; }
 
     .btn-submit { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 15px; cursor: pointer; }
+    .btn-close-box { background: #e67e22; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 10px; }
     
     /* Modales */
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-    .modal-card { background: white; padding: 20px; border-radius: 8px; width: 85%; max-width: 360px; }
+    .modal-card { background: white; padding: 20px; border-radius: 8px; width: 85%; max-width: 380px; max-height: 90vh; overflow-y: auto; }
 
     /* Navegación Inferior */
     .bottom-nav {
@@ -127,7 +130,7 @@
         <button class="btn-filter active" onclick="setFiltro('TODOS', this)">Todos</button>
         <button class="btn-filter" onclick="setFiltro('PENDIENTES', this)">Pendientes</button>
         <button class="btn-filter" onclick="setFiltro('PAGADOS', this)">Pagados Hoy</button>
-        <button class="btn-filter" onclick="setFiltro('ATRASADOS', this)">Atrasados</button>
+        <button class="btn-filter" onclick="setFiltro('ATRASADOS', this)">Atrasados (5+ días)</button>
       </div>
     </div>
     <div id="contenedorLista">
@@ -135,21 +138,72 @@
     </div>
   </div>
 
-  <!-- PESTAÑA 2: RESUMEN FINANCIERO -->
+  <!-- PESTAÑA 2: RESUMEN FINANCIERO Y CAJA -->
   <div id="tabResumen" class="tab-content">
     <div class="summary-box">
       <div class="summary-row"><span>Fecha de Ruta</span><b id="resFecha">-</b></div>
+      <div class="summary-row"><span>Base Inicial del Día</span><b id="resBaseInicial" style="color:#2980b9;">$0.00</b></div>
+      <div class="summary-row"><span>Recaudo del Día (Cobros)</span><b id="resRecaudoDia" style="color:#27ae60;">$0.00</b></div>
+      <div class="summary-row"><span>Otros Ingresos</span><b id="resIngresos" style="color:#27ae60;">+$0.00</b></div>
+      <div class="summary-row"><span>Gastos / Egresos</span><b id="resEgresos" style="color:#c0392b;">-$0.00</b></div>
+      <div class="summary-row" style="background:#e8f8f5;"><span><b>Efectivo en Caja Actual</b></span><b id="resCajaActual" style="font-size:16px; color:#16a085;">$0.00</b></div>
+      <hr style="border:none; border-top:1px solid #eee;">
       <div class="summary-row"><span>Número de Clientes</span><b id="resNumClientes">0</b></div>
       <div class="summary-row"><span>Clientes Nuevos Hoy</span><b id="resClientesNuevos">0</b></div>
       <div class="summary-row"><span>Cobros Realizados</span><b id="resCobrosRealizados">0/0</b></div>
       <div class="summary-row"><span>Recaudo Esperado (100%)</span><b id="resRecaudoEsperado">$0.00</b></div>
-      <div class="summary-row"><span>Recaudo del Día</span><b id="resRecaudoDia" style="color:#27ae60;">$0.00</b></div>
       <div class="summary-row"><span>Total Prestado (Capital)</span><b id="resTotalPrestado">$0.00</b></div>
       <div class="summary-row"><span>Cartera Pendiente</span><b id="resCarteraPendiente" style="color:#e74c3c;">$0.00</b></div>
     </div>
+    
+    <div style="padding: 0 10px;">
+      <button class="btn-close-box" onclick="realizarCierreCaja()">🔒 Realizar Cierre de Caja (Guardar Base para Mañana)</button>
+    </div>
   </div>
 
-  <!-- PESTAÑA 3: NUEVO CLIENTE -->
+  <!-- PESTAÑA 3: MOVIMIENTOS DETALLADOS (GASTOS E INGRESOS) -->
+  <div id="tabGastos" class="tab-content">
+    <div class="form-container">
+      <h3 style="margin-bottom:12px; color:#3b5998;">💸 Movimientos de Caja</h3>
+      
+      <div class="form-group">
+        <label>Tipo de Movimiento</label>
+        <select id="tipoMovimiento" onchange="actualizarCategorias()">
+          <option value="EGRESO">🔴 Gasto / Egreso (Salida de dinero)</option>
+          <option value="INGRESO">🟢 Ingreso (Entrada de dinero)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Categoría</label>
+        <select id="categoriaMovimiento">
+          <!-- Opciones dinámicas según tipo -->
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Monto ($)</label>
+        <input type="number" id="montoMovimiento" placeholder="0.00">
+      </div>
+
+      <div class="form-group">
+        <label>Nota / Detalle Adicional (Opcional)</label>
+        <input type="text" id="conceptoMovimiento" placeholder="Ej: Pago mes de agosto local, factura #123, etc.">
+      </div>
+
+      <button class="btn-submit" onclick="guardarMovimiento()">Guardar Movimiento</button>
+    </div>
+
+    <!-- Lista de movimientos de hoy -->
+    <div class="form-container" style="margin-top: 15px;">
+      <h4 style="margin-bottom:10px; color:#555;">📋 Movimientos del Día</h4>
+      <div id="listaMovimientosHoy" style="font-size:13px; color:#666;">
+        Cargando movimientos...
+      </div>
+    </div>
+  </div>
+
+  <!-- PESTAÑA 4: NUEVO CLIENTE -->
   <div id="tabNuevo" class="tab-content">
     <div class="form-container">
       <h3 style="margin-bottom:12px; color:#3b5998;">➕ Registrar Préstamo</h3>
@@ -179,11 +233,25 @@
     </div>
   </div>
 
-  <!-- Modal Admin Password (PIN) -->
+  <!-- Modal Editar Cliente -->
+  <div class="modal" id="modalEditar">
+    <div class="modal-card">
+      <h3 style="margin-bottom:10px; color:#3b5998;">✏️ Editar Cliente</h3>
+      <input type="hidden" id="editId">
+      <div class="form-group"><label>Nombre</label><input type="text" id="editNombre"></div>
+      <div class="form-group"><label>Teléfono</label><input type="tel" id="editTelefono"></div>
+      <div class="form-group"><label>Saldo Pendiente ($)</label><input type="number" id="editSaldo"></div>
+      <div class="form-group"><label>Valor de Cuota ($)</label><input type="number" id="editCuota"></div>
+      <button class="btn-submit" onclick="guardarEdicionCliente()">Guardar Cambios</button>
+      <button style="background:#95a5a6; color:white; border:none; padding:8px; border-radius:4px; width:100%; margin-top:5px; cursor:pointer;" onclick="cerrarModalEditar()">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Modal PIN Seguridad -->
   <div class="modal" id="modalPin">
     <div class="modal-card">
       <h3 style="margin-bottom:10px; color:#3b5998;">🔒 Clave de Seguridad</h3>
-      <p style="font-size:12px; color:#666; margin-bottom:10px;">Ingresa el PIN de administrador para eliminar (1234):</p>
+      <p style="font-size:12px; color:#666; margin-bottom:10px;">Ingresa el PIN de administrador (1234):</p>
       <input type="password" id="inputPin" style="width:100%; padding:8px; margin-bottom:12px; font-size:16px; text-align:center;">
       <button class="btn-submit" onclick="validarPin()">Confirmar</button>
       <button style="background:#95a5a6; color:white; border:none; padding:8px; border-radius:4px; width:100%; margin-top:5px; cursor:pointer;" onclick="cerrarModalPin()">Cancelar</button>
@@ -194,6 +262,7 @@
   <div class="bottom-nav">
     <button class="nav-item active" onclick="cambiarTab('Clientes', this)">📋 Clientes</button>
     <button class="nav-item" onclick="cambiarTab('Resumen', this)">📊 Resumen</button>
+    <button class="nav-item" onclick="cambiarTab('Gastos', this)">💸 Movimientos</button>
     <button class="nav-item" onclick="cambiarTab('Nuevo', this)">➕ Nuevo</button>
   </div>
 
@@ -201,7 +270,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCI-s09x6xqiJ3LNoralDmX9GuNtTuSK5k",
@@ -229,7 +298,11 @@
     let accionPendiente = null;
     const PIN_ADMIN = "1234";
 
-    // Cargar Plazos
+    let baseInicialCaja = 0;
+    let totalEgresos = 0;
+    let totalIngresos = 0;
+
+    // Cargar Plazos (1 a 60)
     const selectPlazo = document.getElementById('plazo');
     for (let i = 1; i <= 60; i++) {
       const opt = document.createElement('option');
@@ -238,14 +311,68 @@
       selectPlazo.appendChild(opt);
     }
 
-    // --- LOGIN POR ALIAS / USUARIO ---
+    // --- MANEJO DE CATEGORÍAS DINÁMICAS ---
+    const categoriasEgreso = [
+      "🏠 Alquiler / Renta (Local, Oficina, Casa)",
+      "⛽ Gasolina / Combustible",
+      "🔧 Reparación / Mantenimiento Moto",
+      "🍟 Alimentación / Almuerzo / Refresco",
+      "💳 Pago Cuota Préstamo / Intereses",
+      "📦 Papelería / Tarjetas / Impresiones",
+      "📱 Recarga Celular / Datos",
+      "🛑 Peajes / Estacionamiento",
+      "💸 Retiro de Capital / Ganancia",
+      "❓ Otro Gasto"
+    ];
+
+    const categoriasIngreso = [
+      "💵 Inversión / Capital Inicial",
+      "🔄 Reposición / Reembolso de Gasto",
+      "📈 Cobro Interés Extra / Comisión",
+      "💰 Préstamo Recibido",
+      "❓ Otro Ingreso"
+    ];
+
+    window.actualizarCategorias = () => {
+      const tipo = document.getElementById('tipoMovimiento').value;
+      const selectCat = document.getElementById('categoriaMovimiento');
+      selectCat.innerHTML = '';
+      
+      const lista = (tipo === 'EGRESO') ? categoriasEgreso : categoriasIngreso;
+      lista.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.innerText = cat;
+        selectCat.appendChild(opt);
+      });
+    };
+    actualizarCategorias(); // Cargar al inicio
+
+    // --- CÁLCULO DE DÍAS HÁBILES DE ATRASO (SIN CONTAR DOMINGOS) ---
+    function calcularDiasAtrasoSinDomingos(fechaReferenciaStr) {
+      if (!fechaReferenciaStr) return 0;
+      const fInicio = new Date(fechaReferenciaStr + 'T00:00:00');
+      const fHoy = new Date(todayStr + 'T00:00:00');
+      
+      let diasAtraso = 0;
+      let aux = new Date(fInicio);
+      aux.setDate(aux.getDate() + 1);
+
+      while (aux <= fHoy) {
+        if (aux.getDay() !== 0) { // 0 es Domingo
+          diasAtraso++;
+        }
+        aux.setDate(aux.getDate() + 1);
+      }
+      return diasAtraso;
+    }
+
+    // --- AUTENTICACIÓN Y SESIÓN ÚNICA ---
     window.iniciarSesion = async () => {
       let alias = document.getElementById('loginAlias').value.trim().toLowerCase();
       const pass = document.getElementById('loginPassword').value;
 
       if (!alias) return alert("Ingresa tu usuario / alias");
-      
-      // Construir correo automático si el usuario solo puso el alias
       const email = alias.includes('@') ? alias : `${alias}@rutacash.com`;
 
       try {
@@ -254,7 +381,6 @@
         localStorage.setItem('rutacash_session_id', newSessionId);
         localSessionId = newSessionId;
 
-        // Registrar sesión activa
         await setDoc(doc(db, "sesiones", userCred.user.uid), { activeSessionId: newSessionId });
       } catch (e) {
         alert("Error de acceso: Usuario o contraseña incorrectos.");
@@ -270,7 +396,6 @@
       if (user) {
         document.getElementById('screenLogin').style.display = 'none';
         
-        // Control de Sesión Única por Dispositivo
         if (unsubscribeSession) unsubscribeSession();
         unsubscribeSession = onSnapshot(doc(db, "sesiones", user.uid), (docSnap) => {
           if (docSnap.exists()) {
@@ -288,7 +413,7 @@
       }
     });
 
-    // --- NAVEGACIÓN Y LÓGICA ---
+    // --- NAVEGACIÓN Y CÁLCULOS ---
     window.cambiarTab = (tabName, btn) => {
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -332,7 +457,64 @@
       location.reload();
     };
 
+    window.guardarMovimiento = async () => {
+      const tipo = document.getElementById('tipoMovimiento').value;
+      const categoria = document.getElementById('categoriaMovimiento').value;
+      const monto = parseFloat(document.getElementById('montoMovimiento').value) || 0;
+      const nota = document.getElementById('conceptoMovimiento').value.trim();
+
+      if (monto <= 0) return alert("Ingresa un monto válido.");
+
+      await addDoc(collection(db, "movimientos"), {
+        tipo, categoria, monto, nota, fecha: todayStr
+      });
+
+      alert("¡Movimiento guardado con éxito!");
+      document.getElementById('montoMovimiento').value = '';
+      document.getElementById('conceptoMovimiento').value = '';
+      cargarDatos();
+    };
+
     async function cargarDatos() {
+      // 1. Base Inicial de Caja
+      const cajaSnap = await getDoc(doc(db, "caja", todayStr));
+      baseInicialCaja = cajaSnap.exists() ? (cajaSnap.data().baseInicial || 0) : 0;
+
+      // 2. Movimientos del Día (Gastos e Ingresos)
+      const movSnap = await getDocs(collection(db, "movimientos"));
+      totalEgresos = 0;
+      totalIngresos = 0;
+      
+      const contenedorMovs = document.getElementById('listaMovimientosHoy');
+      contenedorMovs.innerHTML = '';
+      let huboMovs = false;
+
+      movSnap.forEach(d => {
+        const m = d.data();
+        if (m.fecha === todayStr) {
+          huboMovs = true;
+          if (m.tipo === 'EGRESO') totalEgresos += m.monto;
+          if (m.tipo === 'INGRESO') totalIngresos += m.monto;
+
+          const color = m.tipo === 'EGRESO' ? '#e74c3c' : '#27ae60';
+          const signo = m.tipo === 'EGRESO' ? '-' : '+';
+          const div = document.createElement('div');
+          div.style.cssText = "padding:6px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between;";
+          div.innerHTML = `
+            <div>
+              <b>${m.categoria}</b> ${m.nota ? `<small>(${m.nota})</small>` : ''}
+            </div>
+            <b style="color:${color};">${signo}$${m.monto.toFixed(2)}</b>
+          `;
+          contenedorMovs.appendChild(div);
+        }
+      });
+
+      if (!huboMovs) {
+        contenedorMovs.innerHTML = '<span style="color:#aaa;">No hay movimientos registrados hoy</span>';
+      }
+
+      // 3. Préstamos
       const querySnapshot = await getDocs(collection(db, "prestamos"));
       todosLosClientes = [];
 
@@ -362,11 +544,18 @@
         if (c.fechaCreacion === todayStr) clientesNuevos++;
       });
 
+      const efectivoCaja = baseInicialCaja + recaudoDia + totalIngresos - totalEgresos;
+
+      document.getElementById('resBaseInicial').innerText = `$${baseInicialCaja.toFixed(2)}`;
+      document.getElementById('resRecaudoDia').innerText = `$${recaudoDia.toFixed(2)}`;
+      document.getElementById('resIngresos').innerText = `+$${totalIngresos.toFixed(2)}`;
+      document.getElementById('resEgresos').innerText = `-$${totalEgresos.toFixed(2)}`;
+      document.getElementById('resCajaActual').innerText = `$${efectivoCaja.toFixed(2)}`;
+
       document.getElementById('resNumClientes').innerText = todosLosClientes.length;
       document.getElementById('resClientesNuevos').innerText = clientesNuevos;
       document.getElementById('resCobrosRealizados').innerText = `${cobrosHechos}/${todosLosClientes.length}`;
       document.getElementById('resRecaudoEsperado').innerText = `$${totalEsperado.toFixed(2)}`;
-      document.getElementById('resRecaudoDia').innerText = `$${recaudoDia.toFixed(2)}`;
       document.getElementById('resTotalPrestado').innerText = `$${totalPrestado.toFixed(2)}`;
       document.getElementById('resCarteraPendiente').innerText = `$${carteraPendiente.toFixed(2)}`;
 
@@ -382,11 +571,15 @@
         const coincideNombre = c.nombre.toLowerCase().includes(busqueda);
         const pagadoHoy = c.ultimoPagoFecha === todayStr;
 
+        const fechaReferencia = c.ultimoPagoFecha || c.fechaCreacion;
+        const diasSinPagar = calcularDiasAtrasoSinDomingos(fechaReferencia);
+        const esAtrasado5Dias = !pagadoHoy && c.saldoPendiente > 0 && diasSinPagar >= 5;
+
         if (!coincideNombre) return false;
 
         if (filtroActual === 'PENDIENTES') return !pagadoHoy && c.saldoPendiente > 0;
         if (filtroActual === 'PAGADOS') return pagadoHoy;
-        if (filtroActual === 'ATRASADOS') return !pagadoHoy && c.saldoPendiente > 0;
+        if (filtroActual === 'ATRASADOS') return esAtrasado5Dias;
         return true;
       });
 
@@ -397,11 +590,21 @@
 
       lista.forEach((c, idx) => {
         const pagadoHoy = c.ultimoPagoFecha === todayStr;
-        let statusClass = 'status-red';
+        const fechaReferencia = c.ultimoPagoFecha || c.fechaCreacion;
+        const diasSinPagar = calcularDiasAtrasoSinDomingos(fechaReferencia);
+
+        let statusClass = 'status-yellow';
         let statusIcon = '👤';
 
-        if (c.saldoPendiente <= 0) { statusClass = 'status-grey'; statusIcon = '✓'; }
-        else if (pagadoHoy) { statusClass = 'status-green'; statusIcon = '✓'; }
+        if (c.saldoPendiente <= 0) { 
+          statusClass = 'status-grey'; 
+          statusIcon = '✓'; 
+        } else if (pagadoHoy) { 
+          statusClass = 'status-green'; 
+          statusIcon = '✓'; 
+        } else if (diasSinPagar >= 5) {
+          statusClass = 'status-red';
+        }
 
         const div = document.createElement('div');
         div.className = 'client-card';
@@ -415,7 +618,8 @@
           </div>
           <div class="actions-group">
             ${!pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-action" onclick="cobrar('${c.id}', ${c.saldoPendiente}, ${c.cuota})">Cobrar</button>` : ''}
-            <button class="btn-edit" onclick="pedirPin('eliminar', '${c.id}')">🗑️</button>
+            <button class="btn-edit" onclick="pedirPin('editar', '${c.id}')">✏️</button>
+            <button class="btn-delete" onclick="pedirPin('eliminar', '${c.id}')">🗑️</button>
           </div>
         `;
         contenedor.appendChild(div);
@@ -440,6 +644,21 @@
       cargarDatos();
     };
 
+    window.realizarCierreCaja = async () => {
+      const cajaTexto = document.getElementById('resCajaActual').innerText.replace('$', '');
+      const efectivo = parseFloat(cajaTexto) || 0;
+
+      if (confirm(`¿Deseas cerrar caja hoy con $${efectivo.toFixed(2)} y establecerlo como Base para el día de mañana?`)) {
+        const hoy = new Date();
+        const manana = new Date(hoy);
+        manana.setDate(manana.getDate() + 1);
+        const mananaStr = manana.toISOString().split('T')[0];
+
+        await setDoc(doc(db, "caja", mananaStr), { baseInicial: efectivo });
+        alert("¡Cierre de caja realizado correctamente! Mañana iniciará con esta base.");
+      }
+    };
+
     window.pedirPin = (accion, id) => {
       accionPendiente = { accion, id };
       document.getElementById('modalPin').style.display = 'flex';
@@ -459,10 +678,45 @@
             await deleteDoc(doc(db, "prestamos", accionPendiente.id));
             cargarDatos();
           }
+        } else if (accionPendiente.accion === 'editar') {
+          abrirModalEditar(accionPendiente.id);
         }
       } else {
         alert("Clave incorrecta.");
       }
+    };
+
+    function abrirModalEditar(id) {
+      const cliente = todosLosClientes.find(c => c.id === id);
+      if (!cliente) return;
+
+      document.getElementById('editId').value = cliente.id;
+      document.getElementById('editNombre').value = cliente.nombre;
+      document.getElementById('editTelefono').value = cliente.telefono || '';
+      document.getElementById('editSaldo').value = cliente.saldoPendiente;
+      document.getElementById('editCuota').value = cliente.cuota;
+
+      document.getElementById('modalEditar').style.display = 'flex';
+    }
+
+    window.cerrarModalEditar = () => {
+      document.getElementById('modalEditar').style.display = 'none';
+    };
+
+    window.guardarEdicionCliente = async () => {
+      const id = document.getElementById('editId').value;
+      const nombre = document.getElementById('editNombre').value;
+      const telefono = document.getElementById('editTelefono').value;
+      const saldoPendiente = parseFloat(document.getElementById('editSaldo').value) || 0;
+      const cuota = parseFloat(document.getElementById('editCuota').value) || 0;
+
+      await updateDoc(doc(db, "prestamos", id), {
+        nombre, telefono, saldoPendiente, cuota
+      });
+
+      cerrarModalEditar();
+      alert("¡Cliente actualizado!");
+      cargarDatos();
     };
   </script>
 </body>
