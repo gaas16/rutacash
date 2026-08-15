@@ -365,14 +365,18 @@
     </div>
   </div>
 
-  <!-- Modal PIN Seguridad -->
-  <div class="modal" id="modalPin">
-    <div class="modal-card">
-      <h3 style="margin-bottom:10px; color:#3b5998;">🔒 Clave de Seguridad</h3>
-      <p style="font-size:12px; color:#666; margin-bottom:10px;">Ingresa el PIN de administrador (1234):</p>
-      <input type="password" id="inputPin" style="width:100%; padding:8px; margin-bottom:12px; font-size:16px; text-align:center;">
-      <button class="btn-submit" onclick="validarPin()">Confirmar</button>
-      <button style="background:#95a5a6; color:white; border:none; padding:8px; border-radius:4px; width:100%; margin-top:5px; cursor:pointer;" onclick="cerrarModalPin()">Cancelar</button>
+  <!-- Ventana emergente para confirmar borrado (Modal Admin Delete) -->
+  <div id="modalAdminDelete" class="modal">
+    <div class="modal-card" style="max-width: 320px; text-align: center;">
+      <h3 style="color: #3b5998; margin-bottom: 10px;">Confirmar Eliminación</h3>
+      <p style="font-size: 14px; color: #555; margin-bottom: 12px;">Ingresa la contraseña de administrador:</p>
+      <input type="password" id="passAdminInput" placeholder="Contraseña Admin" style="width: 100%; padding: 8px; margin-bottom: 8px; box-sizing: border-box; text-align: center;">
+      <div id="errPassAdmin" style="color: red; font-size: 12px; display: none; margin-bottom: 8px;">Contraseña incorrecta</div>
+      
+      <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 10px;">
+        <button onclick="cerrarModalAdmin()" style="flex: 1; padding: 8px 12px; background: #aaa; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Cancelar</button>
+        <button onclick="confirmarYBorrar()" style="flex: 1; padding: 8px 12px; background: #e74c3c; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Eliminar</button>
+      </div>
     </div>
   </div>
 
@@ -413,8 +417,10 @@
 
     let todosLosClientes = [];
     let filtroActual = 'PENDIENTES'; // Filtro por defecto
-    let accionPendiente = null;
-    const PIN_ADMIN = "1234";
+    
+    // Variables para Borrado Admin
+    let elementoPendienteAEliminar = null;
+    const CLAVE_ADMIN = "admin123";
 
     let baseInicialCaja = 0;
     let totalEgresos = 0;
@@ -617,8 +623,14 @@
           const color = m.tipo === 'EGRESO' ? '#e74c3c' : '#27ae60';
           const signo = m.tipo === 'EGRESO' ? '-' : '+';
           const div = document.createElement('div');
-          div.style.cssText = "padding:6px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between;";
-          div.innerHTML = `<div><b>${m.categoria}</b> ${m.nota ? `<small>(${m.nota})</small>` : ''}</div><b style="color:${color};">${signo}$${m.monto.toFixed(2)}</b>`;
+          div.style.cssText = "padding:6px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;";
+          div.innerHTML = `
+            <div><b>${m.categoria}</b> ${m.nota ? `<small>(${m.nota})</small>` : ''}</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <b style="color:${color};">${signo}$${m.monto.toFixed(2)}</b>
+              <button class="btn-delete" style="padding:3px 6px;" onclick="solicitarBorradoAdmin('${d.id}', 'movimiento')">🗑️</button>
+            </div>
+          `;
           contenedorMovs.appendChild(div);
         }
       });
@@ -710,8 +722,8 @@
           <div class="actions-group">
             ${!pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-action" onclick="abrirModalCobro('${c.id}')">Ingresar Pago</button>` : ''}
             ${pagadoHoy ? `<button class="btn-undo" title="Quitar Pago Inmediatamente" onclick="quitarPagoInmediato('${c.id}')">❌ Quitar Pago</button>` : ''}
-            <button class="btn-edit" onclick="pedirPin('editar', '${c.id}')">✏️</button>
-            <button class="btn-delete" onclick="pedirPin('eliminar', '${c.id}')">🗑️</button>
+            <button class="btn-edit" onclick="abrirModalEditar('${c.id}')">✏️</button>
+            <button class="btn-delete" onclick="solicitarBorradoAdmin('${c.id}', 'cliente')">🗑️</button>
           </div>
         `;
         contenedor.appendChild(div);
@@ -882,34 +894,40 @@
       }
     };
 
-    window.pedirPin = (accion, id) => {
-      accionPendiente = { accion, id };
-      document.getElementById('modalPin').style.display = 'flex';
+    // --- FUNCIONES DE BORRADO ADMINISTRATIVO ---
+    window.solicitarBorradoAdmin = (id, tipo) => {
+      elementoPendienteAEliminar = { id, tipo };
+      document.getElementById('passAdminInput').value = '';
+      document.getElementById('errPassAdmin').style.display = 'none';
+      document.getElementById('modalAdminDelete').style.display = 'flex';
     };
 
-    window.cerrarModalPin = () => {
-      document.getElementById('modalPin').style.display = 'none';
-      document.getElementById('inputPin').value = '';
+    window.cerrarModalAdmin = () => {
+      document.getElementById('modalAdminDelete').style.display = 'none';
+      elementoPendienteAEliminar = null;
     };
 
-    window.validarPin = async () => {
-      const pin = document.getElementById('inputPin').value;
-      if (pin === PIN_ADMIN) {
-        cerrarModalPin();
-        if (accionPendiente.accion === 'eliminar') {
-          if (confirm("¿Seguro que deseas eliminar este cliente?")) {
-            await deleteDoc(doc(db, "prestamos", accionPendiente.id));
-            cargarDatos();
+    window.confirmarYBorrar = async () => {
+      const claveIngresada = document.getElementById('passAdminInput').value;
+      
+      if (claveIngresada === CLAVE_ADMIN) {
+        if (elementoPendienteAEliminar) {
+          const { id, tipo } = elementoPendienteAEliminar;
+          if (tipo === 'cliente') {
+            await deleteDoc(doc(db, "prestamos", id));
+          } else if (tipo === 'movimiento') {
+            await deleteDoc(doc(db, "movimientos", id));
           }
-        } else if (accionPendiente.accion === 'editar') {
-          abrirModalEditar(accionPendiente.id);
+          cargarDatos();
         }
+        cerrarModalAdmin();
       } else {
-        alert("Clave incorrecta.");
+        document.getElementById('errPassAdmin').style.display = 'block';
       }
     };
 
-    function abrirModalEditar(id) {
+    // --- MODAL EDITAR CLIENTE ---
+    window.abrirModalEditar = (id) => {
       const cliente = todosLosClientes.find(c => c.id === id);
       if (!cliente) return;
 
@@ -920,7 +938,7 @@
       document.getElementById('editCuota').value = cliente.cuota;
 
       document.getElementById('modalEditar').style.display = 'flex';
-    }
+    };
 
     window.cerrarModalEditar = () => {
       document.getElementById('modalEditar').style.display = 'none';
