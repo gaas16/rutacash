@@ -147,8 +147,7 @@
     <div class="filter-section">
       <input type="text" id="inputBuscar" class="search-input" placeholder="🔍 Buscar Cliente..." onkeyup="filtrarClientes()">
       <div class="filter-buttons">
-        <button class="btn-filter active" onclick="setFiltro('TODOS', this)">Todos</button>
-        <button class="btn-filter" onclick="setFiltro('PENDIENTES', this)">Pendientes</button>
+        <button class="btn-filter active" onclick="setFiltro('PENDIENTES', this)">Pendientes</button>
         <button class="btn-filter" onclick="setFiltro('PAGADOS', this)">Pagados Hoy</button>
         <button class="btn-filter" onclick="setFiltro('ATRASADOS', this)">Atrasados (5+ días)</button>
       </div>
@@ -177,7 +176,7 @@
     </div>
     
     <div style="padding: 0 10px;">
-      <button class="btn-close-box" onclick="realizarCierreCaja()">🔒 Realizar Cierre de Caja (Guardar Base para Mañana)</button>
+      <button class="btn-close-box" onclick="realizarCierreCaja()">🔒 Realizar Cierre de Caja (Guardar Base y Reiniciar Cobros)</button>
     </div>
   </div>
 
@@ -413,7 +412,7 @@
     let unsubscribeSession = null;
 
     let todosLosClientes = [];
-    let filtroActual = 'TODOS';
+    let filtroActual = 'PENDIENTES'; // Filtro por defecto
     let accionPendiente = null;
     const PIN_ADMIN = "1234";
 
@@ -854,18 +853,32 @@
       }
     };
 
+    // --- CIERRE DE CAJA Y REINICIO / RESET PARA CONTINUAR MAÑANA ---
     window.realizarCierreCaja = async () => {
       const cajaTexto = document.getElementById('resCajaActual').innerText.replace('$', '');
       const efectivo = parseFloat(cajaTexto) || 0;
 
-      if (confirm(`¿Deseas cerrar caja hoy con $${efectivo.toFixed(2)} y establecerlo como Base para el día de mañana?`)) {
+      if (confirm(`¿Deseas cerrar caja hoy con $${efectivo.toFixed(2)}, guardar la Base para mañana y REINICIAR las rutas para un nuevo turno?`)) {
         const hoy = new Date();
         const manana = new Date(hoy);
         manana.setDate(manana.getDate() + 1);
         const mananaStr = manana.toISOString().split('T')[0];
 
+        // 1. Guardar Base Inicial para la caja de mañana
         await setDoc(doc(db, "caja", mananaStr), { baseInicial: efectivo });
-        alert("¡Cierre de caja realizado correctamente! Mañana iniciará con esta base.");
+
+        // 2. Reiniciar registros diarios de todos los clientes para liberar la ruta de cobros
+        const promesasReset = todosLosClientes.map(cliente => {
+          return updateDoc(doc(db, "prestamos", cliente.id), {
+            ultimoPagoFecha: "",
+            totalAbonadoHoy: 0
+          });
+        });
+
+        await Promise.all(promesasReset);
+
+        alert("¡Cierre de caja completado con éxito!\n\n1. Se guardó la base para mañana.\n2. Se reiniciaron los estados de cobro. Todos los clientes están listos en 'Pendientes'.");
+        cargarDatos();
       }
     };
 
