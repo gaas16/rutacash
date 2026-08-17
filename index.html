@@ -65,9 +65,13 @@
     .btn-edit { background: #3498db; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
     .btn-delete { background: #e74c3c; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
 
-    .summary-box { background: white; margin: 10px; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-    .summary-row { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid #eee; font-size: 14px; }
-    .summary-row:nth-child(even) { background-color: #f9f9f9; }
+    /* ESTILOS INSPIRADOS EN LA IMAGEN DE RESUMEN V5 */
+    .summary-box-v5 { background: white; margin: 10px; border: 1px solid #ccc; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .v5-header { background: linear-gradient(to bottom, #dcdcdc, #b5b5b5); padding: 8px 12px; font-weight: bold; color: #000; font-size: 14px; border-bottom: 1px solid #aaa; }
+    .v5-row { display: flex; justify-content: space-between; padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #e5e5e5; }
+    .v5-row:nth-child(even) { background-color: #f7f7f7; }
+    .v5-row.highlight { background-color: #e3f2fd; font-weight: bold; }
+    .v5-row.total-capital { background-color: #27ae60; color: white; font-weight: bold; font-size: 14px; }
 
     .form-container { background: white; margin: 10px; padding: 15px; border-radius: 6px; }
     .form-group { margin-bottom: 10px; }
@@ -157,23 +161,28 @@
   </div>
 
   <div id="tabResumen" class="tab-content">
-    <div class="summary-box">
-      <div class="summary-row"><span>Fecha Operativa</span><b id="resFecha">-</b></div>
-      <div class="summary-row"><span>Base Inicial del Día</span><b id="resBaseInicial" style="color:#2980b9;">$0.00</b></div>
-      <div class="summary-row"><span>Recaudo del Día (Cobrado)</span><b id="resRecaudoDia" style="color:#27ae60;">+$0.00</b></div>
-      <div class="summary-row"><span>Otros Ingresos</span><b id="resIngresos" style="color:#27ae60;">+$0.00</b></div>
-      <div class="summary-row"><span>Gastos / Egresos</span><b id="resEgresos" style="color:#c0392b;">-$0.00</b></div>
-      <div class="summary-row" style="background:#e8f8f5;"><span><b>Efectivo en Caja Actual</b></span><b id="resCajaActual" style="font-size:16px; color:#16a085;">$0.00</b></div>
-      <hr style="border:none; border-top:1px solid #eee;">
-      <div class="summary-row"><span>Recaudo Esperado (100% Día)</span><b id="resRecaudoEsperado">$0.00</b></div>
-      <div class="summary-row"><span>Falta por Recoger (Hoy)</span><b id="resFaltaPorRecoger" style="color:#e67e22; font-weight:bold;">$0.00</b></div>
-      <div class="summary-row"><span>Número de Clientes Activos</span><b id="resNumClientes">0</b></div>
-      <div class="summary-row"><span>Cobros Realizados Hoy</span><b id="resCobrosRealizados">0/0</b></div>
-      <div class="summary-row"><span>Total Prestado (Capital)</span><b id="resTotalPrestado">$0.00</b></div>
-      <div class="summary-row"><span>Cartera Total Pendiente</span><b id="resCarteraPendiente" style="color:#e74c3c;">$0.00</b></div>
+    <div class="summary-box-v5">
+      <div class="v5-header">Resumen del Día</div>
+      <div class="v5-row"><span>Fecha de Ruta</span><b id="resFecha">-</b></div>
+      <div class="v5-row"><span>Clientes Ausentes</span><b id="resClientesAusentes">0</b></div>
+      <div class="v5-row"><span>Número Clientes</span><b id="resNumClientes">0</b></div>
+      <div class="v5-row"><span>Pagos Registrados</span><b id="resCobrosRealizados">0/0</b></div>
+      <div class="v5-row"><span>Caja Inicial</span><b id="resBaseInicial">$0.00</b></div>
+      <div class="v5-row"><span>Recaudo Esperado</span><b id="resRecaudoEsperado">$0.00</b></div>
+      <div class="v5-row"><span>Recaudo del día</span><b id="resRecaudoDia" style="color:#27ae60;">$0.00</b></div>
+      <div class="v5-row"><span>Efectivo / Transferencia</span><b id="resEfectivoTransf">$0.00 / $0.00</b></div>
+      <div class="v5-row"><span>Total Ventas (Nuevos Préstamos)</span><b id="resTotalVentas">$0.00</b></div>
+      <div class="v5-row"><span>Egresos / Gastos</span><b id="resEgresos" style="color:#c0392b;">$0.00</b></div>
+      <div class="v5-row"><span>Otros Ingresos</span><b id="resIngresos" style="color:#27ae60;">$0.00</b></div>
+      <div class="v5-row highlight"><span>Saldo Real en Caja</span><b id="resCajaActual" style="color:#16a085;">$0.00</b></div>
+      
+      <div class="v5-header" style="margin-top:10px; background:linear-gradient(to bottom, #bdc3c7, #95a5a6);">💼 Control Total de Cartera (Sin Gastos/Ingresos)</div>
+      <div class="v5-row"><span>Total Prestado (Capital Viento)</span><b id="resTotalPrestado">$0.00</b></div>
+      <div class="v5-row"><span>Cartera Total por Recoger (Falta)</span><b id="resCarteraPendiente" style="color:#e67e22;">$0.00</b></div>
+      <div class="v5-row total-capital"><span>CAPITAL TOTAL (Caja Actual + Por Recoger)</span><b id="resCapitalTotalGlobal">$0.00</b></div>
     </div>
     
-    <div style="padding: 0 10px;">
+    <div style="padding: 0 10px; margin-bottom: 15px;">
       <button class="btn-close-box" id="btnCierreCaja" onclick="realizarCierreCaja()">🔒 Realizar Cierre de Caja</button>
       <div id="msgCierreInfo" style="font-size: 12px; color: #e74c3c; text-align: center; margin-top: 5px; font-weight: bold;"></div>
     </div>
@@ -383,7 +392,6 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // LÓGICA DE FECHA OPERATIVA INTELIGENTE (Trata de 00:00 a 04:59 AM como la jornada anterior)
     function getFechaOperativa(fechaObj = new Date()) {
       const copia = new Date(fechaObj);
       if (copia.getHours() < 5) {
@@ -608,14 +616,12 @@
       document.getElementById('fechaHoy').innerText = todayStr;
       document.getElementById('resFecha').innerText = todayStr;
 
-      // 1. Verificar Estado de Cierre de Caja del Día Operativo
       const cajaSnap = await getDoc(doc(db, "caja", todayStr));
       if (cajaSnap.exists()) {
         baseInicialCaja = cajaSnap.data().baseInicial || 0;
         cajaCerradaHoy = cajaSnap.data().cerrada || false;
       } else {
         cajaCerradaHoy = false;
-        // Buscar la última base guardada anterior a hoy
         const todasCajas = await getDocs(collection(db, "caja"));
         let ultimaFecha = "";
         todasCajas.forEach(docCaja => {
@@ -628,7 +634,6 @@
 
       document.getElementById('bannerCierreBloqueo').style.display = cajaCerradaHoy ? 'block' : 'none';
 
-      // 2. Obtener Movimientos
       const movSnap = await getDocs(collection(db, "movimientos"));
       totalEgresos = 0; totalIngresos = 0;
       const contenedorMovs = document.getElementById('listaMovimientosHoy');
@@ -657,15 +662,20 @@
       });
       if (!huboMovs) contenedorMovs.innerHTML = '<span style="color:#aaa;">No hay movimientos registrados hoy</span>';
 
-      // 3. Obtener Préstamos y Cálculos
       const querySnapshot = await getDocs(collection(db, "prestamos"));
       todosLosClientes = [];
-      let recaudoEsperado = 0, recaudoDia = 0, totalPrestado = 0, carteraPendiente = 0, cobrosHechos = 0, clientesActivos = 0;
+      let recaudoEsperado = 0, recaudoDia = 0, recaudoEfectivo = 0, recaudoTransf = 0;
+      let totalPrestado = 0, carteraPendiente = 0, cobrosHechos = 0, clientesActivos = 0;
+      let nuevosPrestamosHoy = 0, ausentesHoy = 0;
 
       querySnapshot.forEach((docSnap) => {
         const c = docSnap.data();
         c.id = docSnap.id;
         todosLosClientes.push(c);
+
+        if (c.fechaCreacion === todayStr) {
+          nuevosPrestamosHoy += c.capital || 0;
+        }
 
         if (c.saldoPendiente > 0) {
           clientesActivos++;
@@ -675,28 +685,38 @@
         totalPrestado += c.capital || 0;
 
         if (c.ultimoPagoFecha === todayStr) {
-          recaudoDia += c.totalAbonadoHoy || 0;
+          const abonado = c.totalAbonadoHoy || 0;
+          recaudoDia += abonado;
+          if (c.formaPago === 'Transferencia') recaudoTransf += abonado;
+          else recaudoEfectivo += abonado;
+          
           cobrosHechos++;
+          if (abonado === 0) ausentesHoy++;
         }
       });
 
-      const faltaPorRecoger = Math.max(0, recaudoEsperado - recaudoDia);
-      const efectivoCaja = baseInicialCaja + recaudoDia + totalIngresos - totalEgresos;
+      const efectivoCaja = baseInicialCaja + recaudoDia + totalIngresos - totalEgresos - nuevosPrestamosHoy;
+      const capitalTotalGlobal = efectivoCaja + carteraPendiente; // CUENTA TOTAL LIMPIA (Caja + Por Recoger)
 
-      document.getElementById('resBaseInicial').innerText = `$${baseInicialCaja.toFixed(2)}`;
-      document.getElementById('resRecaudoDia').innerText = `+$${recaudoDia.toFixed(2)}`;
-      document.getElementById('resIngresos').innerText = `+$${totalIngresos.toFixed(2)}`;
-      document.getElementById('resEgresos').innerText = `-$${totalEgresos.toFixed(2)}`;
-      document.getElementById('resCajaActual').innerText = `$${efectivoCaja.toFixed(2)}`;
-      
-      document.getElementById('resRecaudoEsperado').innerText = `$${recaudoEsperado.toFixed(2)}`;
-      document.getElementById('resFaltaPorRecoger').innerText = `$${faltaPorRecoger.toFixed(2)}`;
+      // RENDERIZAR V5 RESUMEN
+      document.getElementById('resFecha').innerText = todayStr;
+      document.getElementById('resClientesAusentes').innerText = ausentesHoy;
       document.getElementById('resNumClientes').innerText = clientesActivos;
       document.getElementById('resCobrosRealizados').innerText = `${cobrosHechos}/${clientesActivos}`;
+      document.getElementById('resBaseInicial').innerText = `$${baseInicialCaja.toFixed(2)}`;
+      document.getElementById('resRecaudoEsperado').innerText = `$${recaudoEsperado.toFixed(2)}`;
+      document.getElementById('resRecaudoDia').innerText = `$${recaudoDia.toFixed(2)}`;
+      document.getElementById('resEfectivoTransf').innerText = `$${recaudoEfectivo.toFixed(2)} / $${recaudoTransf.toFixed(2)}`;
+      document.getElementById('resTotalVentas').innerText = `$${nuevosPrestamosHoy.toFixed(2)}`;
+      document.getElementById('resEgresos').innerText = `$${totalEgresos.toFixed(2)}`;
+      document.getElementById('resIngresos').innerText = `$${totalIngresos.toFixed(2)}`;
+      document.getElementById('resCajaActual').innerText = `$${efectivoCaja.toFixed(2)}`;
+
+      // SECCIÓN CUENTA TOTAL / CARTERA
       document.getElementById('resTotalPrestado').innerText = `$${totalPrestado.toFixed(2)}`;
       document.getElementById('resCarteraPendiente').innerText = `$${carteraPendiente.toFixed(2)}`;
+      document.getElementById('resCapitalTotalGlobal').innerText = `$${capitalTotalGlobal.toFixed(2)}`;
 
-      // Control del Botón de Cierre de Caja
       const btnCierre = document.getElementById('btnCierreCaja');
       const msgCierre = document.getElementById('msgCierreInfo');
 
@@ -876,11 +896,13 @@
       const nuevoSaldo = parseFloat(document.getElementById('mcNuevoSaldo').value) || 0;
       const valorAbonado = parseFloat(document.getElementById('mcValorPagar').value) || 0;
       const observaciones = document.getElementById('mcObservaciones').value;
+      const formaPago = document.getElementById('mcFormaPago').value;
 
       await updateDoc(doc(db, "prestamos", id), {
         saldoPendiente: nuevoSaldo,
         ultimoPagoFecha: todayStr,
         totalAbonadoHoy: valorAbonado,
+        formaPago: formaPago,
         ultimaObservacion: observaciones
       });
 
@@ -911,7 +933,6 @@
       }
     };
 
-    // CIERRE NOCTURNO INTELIGENTE
     window.realizarCierreCaja = async () => {
       const cajaTexto = document.getElementById('resCajaActual').innerText.replace('$', '');
       const efectivo = parseFloat(cajaTexto) || 0;
@@ -925,26 +946,20 @@
       let fechaSiguiente = "";
 
       if (horaActual < 5) {
-        // Cierre entre 00:00 y 04:59 AM: Cierra el día anterior y la fecha siguiente es HOY
         const ayer = new Date(ahora);
         ayer.setDate(ayer.getDate() - 1);
         fechaCierre = ayer.toISOString().split('T')[0];
         fechaSiguiente = ahora.toISOString().split('T')[0];
       } else {
-        // Cierre normal durante el día o noche
         const manana = new Date(ahora);
         manana.setDate(manana.getDate() + 1);
         fechaSiguiente = manana.toISOString().split('T')[0];
       }
 
-      // 1. Marcar caja como cerrada
       await setDoc(doc(db, "caja", fechaCierre), { baseInicial: baseInicialCaja, cerrada: true }, { merge: true });
-
-      // 2. Trasladar la base a la jornada siguiente
       await setDoc(doc(db, "caja", fechaSiguiente), { baseInicial: efectivo, cerrada: false }, { merge: true });
 
       if (horaActual < 5) {
-        // Resetear inmediatamenete si es madrugada para operar hoy mismo
         const promesasReset = todosLosClientes.map(cliente => {
           return updateDoc(doc(db, "prestamos", cliente.id), {
             ultimoPagoFecha: "",
