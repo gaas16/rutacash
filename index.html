@@ -91,6 +91,7 @@
     .calc-box { background: #eef2f7; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #3b5998; font-size: 13px; }
     .btn-submit { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 15px; cursor: pointer; }
     .btn-close-box { background: #e67e22; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 10px; }
+    .btn-close-box:disabled { background: #bdc3c7; cursor: not-allowed; }
     
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
     .modal-card { background: white; padding: 18px; border-radius: 8px; width: 90%; max-width: 420px; max-height: 92vh; overflow-y: auto; }
@@ -110,6 +111,11 @@
       font-size: 11px; color: #666; background: none; border: none; cursor: pointer; width: 100%; height: 100%;
     }
     .nav-item.active { background-color: #f1c40f; color: #000; font-weight: bold; }
+
+    .banner-bloqueo {
+      background-color: #e74c3c; color: white; padding: 10px; text-align: center;
+      font-size: 13px; font-weight: bold; display: none;
+    }
   </style>
 </head>
 <body>
@@ -129,6 +135,10 @@
       <span class="date-badge" id="fechaHoy"></span>
       <button onclick="cerrarSesion()" style="background:none; border:none; color:white; font-size:12px; text-decoration:underline; margin-left:5px; cursor:pointer;">Salir</button>
     </div>
+  </div>
+
+  <div id="bannerCierreBloqueo" class="banner-bloqueo">
+    🔒 Cierre de caja realizado. Cobros bloqueados hasta mañana.
   </div>
 
   <div id="tabClientes" class="tab-content active">
@@ -164,7 +174,8 @@
     </div>
     
     <div style="padding: 0 10px;">
-      <button class="btn-close-box" onclick="realizarCierreCaja()">🔒 Realizar Cierre de Caja (Trasladar Base para Mañana)</button>
+      <button class="btn-close-box" id="btnCierreCaja" onclick="realizarCierreCaja()">🔒 Realizar Cierre de Caja</button>
+      <div id="msgCierreInfo" style="font-size: 12px; color: #e74c3c; text-align: center; margin-top: 5px; font-weight: bold;"></div>
     </div>
   </div>
 
@@ -388,6 +399,7 @@
     let totalEgresos = 0;
     let totalIngresos = 0;
     let fotoFachadaBase64 = "";
+    let cajaCerradaHoy = false;
 
     const selectPlazo = document.getElementById('plazo');
     for (let i = 1; i <= 60; i++) {
@@ -583,12 +595,14 @@
     };
 
     async function cargarDatos() {
-      // 1. Obtener Base de Caja
+      // 1. Verificar Estado de Cierre de Caja del Día
       const cajaSnap = await getDoc(doc(db, "caja", todayStr));
       if (cajaSnap.exists()) {
         baseInicialCaja = cajaSnap.data().baseInicial || 0;
+        cajaCerradaHoy = cajaSnap.data().cerrada || false;
       } else {
-        // Buscar el último registro de caja guardado si no hay del día de hoy
+        cajaCerradaHoy = false;
+        // Buscar la última base guardada antes de hoy
         const todasCajas = await getDocs(collection(db, "caja"));
         let ultimaFecha = "";
         todasCajas.forEach(docCaja => {
@@ -598,6 +612,8 @@
           }
         });
       }
+
+      document.getElementById('bannerCierreBloqueo').style.display = cajaCerradaHoy ? 'block' : 'none';
 
       // 2. Obtener Movimientos
       const movSnap = await getDocs(collection(db, "movimientos"));
@@ -647,7 +663,7 @@
 
         if (c.ultimoPagoFecha === todayStr) {
           recaudoDia += c.totalAbonadoHoy || 0;
-          if (c.totalAbonadoHoy > 0) cobrosHechos++;
+          cobrosHechos++;
         }
       });
 
@@ -666,6 +682,24 @@
       document.getElementById('resCobrosRealizados').innerText = `${cobrosHechos}/${clientesActivos}`;
       document.getElementById('resTotalPrestado').innerText = `$${totalPrestado.toFixed(2)}`;
       document.getElementById('resCarteraPendiente').innerText = `$${carteraPendiente.toFixed(2)}`;
+
+      // Control del Botón de Cierre de Caja
+      const btnCierre = document.getElementById('btnCierreCaja');
+      const msgCierre = document.getElementById('msgCierreInfo');
+
+      if (cajaCerradaHoy) {
+        btnCierre.disabled = true;
+        btnCierre.innerText = "🔒 Cierre Ya Realizado Hoy";
+        msgCierre.innerText = "Los cobros están bloqueados hasta las 00:00 HS de mañana.";
+      } else if (cobrosHechos < clientesActivos) {
+        btnCierre.disabled = true;
+        btnCierre.innerText = "🔒 Cierre de Caja Bloqueado";
+        msgCierre.innerText = `Faltan ${clientesActivos - cobrosHechos} cliente(s) por gestionar (pago, abono o no pago).`;
+      } else {
+        btnCierre.disabled = false;
+        btnCierre.innerText = "🔒 Realizar Cierre de Caja";
+        msgCierre.innerText = "";
+      }
 
       renderizarLista();
     }
@@ -717,8 +751,8 @@
           </div>
           <div class="actions-group">
             ${c.saldoPendiente <= 0 ? `<button class="btn-renovar" onclick="renovarCliente('${c.id}')">🔄 Renovar</button>` : ''}
-            ${!pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-action" onclick="abrirModalCobro('${c.id}')">Ingresar Pago</button>` : ''}
-            ${pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-undo" title="Quitar Pago" onclick="quitarPagoInmediato('${c.id}')">❌ Quitar</button>` : ''}
+            ${!pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-action" ${cajaCerradaHoy ? 'disabled style="background:#bdc3c7;"' : ''} onclick="abrirModalCobro('${c.id}')">Ingresar Pago</button>` : ''}
+            ${pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-undo" ${cajaCerradaHoy ? 'disabled style="background:#bdc3c7;"' : ''} title="Quitar Pago" onclick="quitarPagoInmediato('${c.id}')">❌ Quitar</button>` : ''}
             <button class="btn-edit" onclick="abrirModalEditar('${c.id}')">✏️</button>
             <button class="btn-delete" onclick="solicitarBorradoAdmin('${c.id}', 'cliente')">🗑️</button>
           </div>
@@ -737,6 +771,8 @@
     window.filtrarClientes = () => renderizarLista();
 
     window.abrirModalCobro = (id) => {
+      if (cajaCerradaHoy) return alert("La caja ya ha sido cerrada hoy. Los nuevos cobros están bloqueados hasta mañana.");
+
       const c = todosLosClientes.find(x => x.id === id);
       if (!c) return;
 
@@ -841,6 +877,8 @@
     };
 
     window.quitarPagoInmediato = async (id) => {
+      if (cajaCerradaHoy) return alert("La caja ya fue cerrada. No es posible modificar cobros hoy.");
+
       const c = todosLosClientes.find(x => x.id === id);
       if (!c) return;
 
@@ -864,26 +902,36 @@
       const cajaTexto = document.getElementById('resCajaActual').innerText.replace('$', '');
       const efectivo = parseFloat(cajaTexto) || 0;
 
-      if (confirm(`¿Deseas cerrar caja hoy con $${efectivo.toFixed(2)}, trasladar esta base para mañana y reiniciar las banderas de cobro?`)) {
-        const hoy = new Date();
-        const manana = new Date(hoy);
-        manana.setDate(manana.getDate() + 1);
-        const mananaStr = manana.toISOString().split('T')[0];
+      if (!confirm(`¿Confirmas cerrar caja hoy con $${efectivo.toFixed(2)}?`)) return;
 
-        await setDoc(doc(db, "caja", mananaStr), { baseInicial: efectivo });
+      const ahora = new Date();
+      const horaActual = ahora.getHours();
 
+      // Marca la caja del día actual como CERRADA
+      await setDoc(doc(db, "caja", todayStr), { baseInicial: baseInicialCaja, cerrada: true }, { merge: true });
+
+      if (horaActual >= 0 && horaActual < 5) {
+        // SI ES PASADA LA MEDIANOCHE: Reinicio Inmediato
         const promesasReset = todosLosClientes.map(cliente => {
           return updateDoc(doc(db, "prestamos", cliente.id), {
             ultimoPagoFecha: "",
             totalAbonadoHoy: 0
           });
         });
-
         await Promise.all(promesasReset);
+        alert(`¡Cierre completado!\n\nAl ser realizada después de medianoche, la ruta se ha reiniciado inmediatamente para operar hoy.`);
+      } else {
+        // SI ES ANTES DE MEDIANOCHE: Traslada base para mañana y bloquea cobros hasta cambiar de fecha
+        const manana = new Date(ahora);
+        manana.setDate(manana.getDate() + 1);
+        const mananaStr = manana.toISOString().split('T')[0];
 
-        alert("¡Cierre de caja completado!\n\n1. La base inicial de mañana se estableció en $" + efectivo.toFixed(2) + ".\n2. Los estados de cobro diario se han reiniciado.");
-        cargarDatos();
+        await setDoc(doc(db, "caja", mananaStr), { baseInicial: efectivo, cerrada: false });
+
+        alert(`¡Cierre de caja completado!\n\n1. Base de $${efectivo.toFixed(2)} guardada para mañana.\n2. Los cobros quedan bloqueados hasta las 00:00 HS.`);
       }
+
+      cargarDatos();
     };
 
     window.solicitarBorradoAdmin = (id, tipo) => {
