@@ -4,10 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>RutaCash - Sistema de Cobranza</title>
-  
-  <!-- Carga de API de Google Maps Places para autocompletar direcciones -->
-  <!-- Reemplaza 'TU_API_KEY_AQUI' por tu clave de API de Google Maps para activar el autocompletado -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY_AQUI&libraries=places" async defer></script>
 
   <style>
     * { box-sizing: border-box; font-family: sans-serif; margin: 0; padding: 0; }
@@ -130,7 +126,6 @@
       font-size: 13px; font-weight: bold; display: none;
     }
 
-    /* Ajuste para sugerencias de Google Places en móviles */
     .pac-container { z-index: 3000 !important; }
   </style>
 </head>
@@ -229,7 +224,6 @@
     <div class="form-container">
       <h3 style="margin-bottom:12px; color:#3b5998;" id="tituloFormNuevo">➕ Registrar Préstamo y Cliente</h3>
       
-      <!-- Campo oculto para guardar el ID del cliente si se trata de una renovación -->
       <input type="hidden" id="renovacionClienteId" value="">
 
       <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="nombre" placeholder="Nombre completo"></div>
@@ -403,6 +397,25 @@
     <button class="nav-item" id="navBtnNuevo" onclick="cambiarTab('Nuevo', this)">➕ Nuevo</button>
   </div>
 
+  <script>
+    // Función callback global requerida por Google Maps para inicializar de forma segura
+    function initGooglePlaces() {
+      try {
+        if (window.google && window.google.maps && window.google.maps.places) {
+          const inputRes = document.getElementById('dirResidencia');
+          const inputLoc = document.getElementById('dirLocal');
+          if (inputRes) new google.maps.places.Autocomplete(inputRes);
+          if (inputLoc) new google.maps.places.Autocomplete(inputLoc);
+        }
+      } catch (err) {
+        console.warn("Autocompletado de Google Maps no disponible:", err);
+      }
+    }
+  </script>
+
+  <!-- Carga segura con callback para evitar congelamientos al escribir -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY_AQUI&libraries=places&callback=initGooglePlaces" async defer></script>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -461,16 +474,6 @@
       if (i === 24) opt.selected = true;
       selectPlazo.appendChild(opt);
     }
-
-    // Inicializar Google Places Autocomplete para las direcciones si la API está disponible
-    window.addEventListener('load', () => {
-      if (window.google && window.google.maps && window.google.maps.places) {
-        const inputRes = document.getElementById('dirResidencia');
-        const inputLoc = document.getElementById('dirLocal');
-        if (inputRes) new google.maps.places.Autocomplete(inputRes);
-        if (inputLoc) new google.maps.places.Autocomplete(inputLoc);
-      }
-    });
 
     window.abrirMapa = (idInput) => {
       const direccion = document.getElementById(idInput).value.trim();
@@ -609,7 +612,6 @@
       const cuota = montoTotal / plazo;
 
       if (idRenovacion) {
-        // Renovar cliente existente: actualiza el registro actual y lo regresa a la lista de pendientes inmediatamente
         await updateDoc(doc(db, "prestamos", idRenovacion), {
           nombre, telefono, dirResidencia, dirLocal, fotoFachada: fotoFachadaBase64,
           capital, pctInteres: pct, montoTotal, cuota, modalidad, plazo,
@@ -618,7 +620,6 @@
         });
         alert("¡Préstamo renovado exitosamente! El cliente ha pasado a la lista de Pendientes.");
       } else {
-        // Crear nuevo cliente
         await addDoc(collection(db, "prestamos"), {
           nombre, telefono, dirResidencia, dirLocal, fotoFachada: fotoFachadaBase64,
           capital, pctInteres: pct, montoTotal, cuota, modalidad, plazo,
