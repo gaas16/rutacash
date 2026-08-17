@@ -158,7 +158,7 @@
 
   <div id="tabResumen" class="tab-content">
     <div class="summary-box">
-      <div class="summary-row"><span>Fecha de Ruta</span><b id="resFecha">-</b></div>
+      <div class="summary-row"><span>Fecha Operativa</span><b id="resFecha">-</b></div>
       <div class="summary-row"><span>Base Inicial del Día</span><b id="resBaseInicial" style="color:#2980b9;">$0.00</b></div>
       <div class="summary-row"><span>Recaudo del Día (Cobrado)</span><b id="resRecaudoDia" style="color:#27ae60;">+$0.00</b></div>
       <div class="summary-row"><span>Otros Ingresos</span><b id="resIngresos" style="color:#27ae60;">+$0.00</b></div>
@@ -383,7 +383,16 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    // LÓGICA DE FECHA OPERATIVA INTELIGENTE (Trata de 00:00 a 04:59 AM como la jornada anterior)
+    function getFechaOperativa(fechaObj = new Date()) {
+      const copia = new Date(fechaObj);
+      if (copia.getHours() < 5) {
+        copia.setDate(copia.getDate() - 1);
+      }
+      return copia.toISOString().split('T')[0];
+    }
+
+    let todayStr = getFechaOperativa();
     document.getElementById('fechaHoy').innerText = todayStr;
     document.getElementById('resFecha').innerText = todayStr;
 
@@ -595,14 +604,18 @@
     };
 
     async function cargarDatos() {
-      // 1. Verificar Estado de Cierre de Caja del Día
+      todayStr = getFechaOperativa();
+      document.getElementById('fechaHoy').innerText = todayStr;
+      document.getElementById('resFecha').innerText = todayStr;
+
+      // 1. Verificar Estado de Cierre de Caja del Día Operativo
       const cajaSnap = await getDoc(doc(db, "caja", todayStr));
       if (cajaSnap.exists()) {
         baseInicialCaja = cajaSnap.data().baseInicial || 0;
         cajaCerradaHoy = cajaSnap.data().cerrada || false;
       } else {
         cajaCerradaHoy = false;
-        // Buscar la última base guardada antes de hoy
+        // Buscar la última base guardada anterior a hoy
         const todasCajas = await getDocs(collection(db, "caja"));
         let ultimaFecha = "";
         todasCajas.forEach(docCaja => {
@@ -690,7 +703,7 @@
       if (cajaCerradaHoy) {
         btnCierre.disabled = true;
         btnCierre.innerText = "🔒 Cierre Ya Realizado Hoy";
-        msgCierre.innerText = "Los cobros están bloqueados hasta las 00:00 HS de mañana.";
+        msgCierre.innerText = "Los cobros están bloqueados hasta la siguiente jornada.";
       } else if (cobrosHechos < clientesActivos) {
         btnCierre.disabled = true;
         btnCierre.innerText = "🔒 Cierre de Caja Bloqueado";
@@ -771,7 +784,7 @@
     window.filtrarClientes = () => renderizarLista();
 
     window.abrirModalCobro = (id) => {
-      if (cajaCerradaHoy) return alert("La caja ya ha sido cerrada hoy. Los nuevos cobros están bloqueados hasta mañana.");
+      if (cajaCerradaHoy) return alert("La caja ya ha sido cerrada hoy. Los nuevos cobros están bloqueados hasta la siguiente jornada.");
 
       const c = todosLosClientes.find(x => x.id === id);
       if (!c) return;
@@ -898,20 +911,40 @@
       }
     };
 
+    // CIERRE NOCTURNO INTELIGENTE
     window.realizarCierreCaja = async () => {
       const cajaTexto = document.getElementById('resCajaActual').innerText.replace('$', '');
       const efectivo = parseFloat(cajaTexto) || 0;
 
-      if (!confirm(`¿Confirmas cerrar caja hoy con $${efectivo.toFixed(2)}?`)) return;
+      if (!confirm(`¿Confirmas cerrar caja con $${efectivo.toFixed(2)}?`)) return;
 
       const ahora = new Date();
       const horaActual = ahora.getHours();
 
-      // Marca la caja del día actual como CERRADA
-      await setDoc(doc(db, "caja", todayStr), { baseInicial: baseInicialCaja, cerrada: true }, { merge: true });
+      let fechaCierre = todayStr;
+      let fechaSiguiente = "";
 
-      if (horaActual >= 0 && horaActual < 5) {
-        // SI ES PASADA LA MEDIANOCHE: Reinicio Inmediato
+      if (horaActual < 5) {
+        // Cierre entre 00:00 y 04:59 AM: Cierra el día anterior y la fecha siguiente es HOY
+        const ayer = new Date(ahora);
+        ayer.setDate(ayer.getDate() - 1);
+        fechaCierre = ayer.toISOString().split('T')[0];
+        fechaSiguiente = ahora.toISOString().split('T')[0];
+      } else {
+        // Cierre normal durante el día o noche
+        const manana = new Date(ahora);
+        manana.setDate(manana.getDate() + 1);
+        fechaSiguiente = manana.toISOString().split('T')[0];
+      }
+
+      // 1. Marcar caja como cerrada
+      await setDoc(doc(db, "caja", fechaCierre), { baseInicial: baseInicialCaja, cerrada: true }, { merge: true });
+
+      // 2. Trasladar la base a la jornada siguiente
+      await setDoc(doc(db, "caja", fechaSiguiente), { baseInicial: efectivo, cerrada: false }, { merge: true });
+
+      if (horaActual < 5) {
+        // Resetear inmediatamenete si es madrugada para operar hoy mismo
         const promesasReset = todosLosClientes.map(cliente => {
           return updateDoc(doc(db, "prestamos", cliente.id), {
             ultimoPagoFecha: "",
@@ -919,16 +952,9 @@
           });
         });
         await Promise.all(promesasReset);
-        alert(`¡Cierre completado!\n\nAl ser realizada después de medianoche, la ruta se ha reiniciado inmediatamente para operar hoy.`);
+        alert(`¡Cierre de la jornada anterior completado!\n\n1. Base de $${efectivo.toFixed(2)} asignada a HOY.\n2. La app ya está totalmente lista para operar el día de hoy.`);
       } else {
-        // SI ES ANTES DE MEDIANOCHE: Traslada base para mañana y bloquea cobros hasta cambiar de fecha
-        const manana = new Date(ahora);
-        manana.setDate(manana.getDate() + 1);
-        const mananaStr = manana.toISOString().split('T')[0];
-
-        await setDoc(doc(db, "caja", mananaStr), { baseInicial: efectivo, cerrada: false });
-
-        alert(`¡Cierre de caja completado!\n\n1. Base de $${efectivo.toFixed(2)} guardada para mañana.\n2. Los cobros quedan bloqueados hasta las 00:00 HS.`);
+        alert(`¡Cierre de caja completado!\n\n1. Base de $${efectivo.toFixed(2)} guardada para mañana.\n2. Los cobros quedan bloqueados hasta cambiar de día.`);
       }
 
       cargarDatos();
