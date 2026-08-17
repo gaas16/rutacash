@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>RutaCash - Sistema de Cobranza</title>
+  
+  <!-- Carga de API de Google Maps Places para autocompletar direcciones -->
+  <!-- Reemplaza 'TU_API_KEY_AQUI' por tu clave de API de Google Maps para activar el autocompletado -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY_AQUI&libraries=places" async defer></script>
+
   <style>
     * { box-sizing: border-box; font-family: sans-serif; margin: 0; padding: 0; }
     body { background-color: #f2f2f2; user-select: none; padding-bottom: 65px; }
@@ -124,6 +129,9 @@
       background-color: #e74c3c; color: white; padding: 10px; text-align: center;
       font-size: 13px; font-weight: bold; display: none;
     }
+
+    /* Ajuste para sugerencias de Google Places en móviles */
+    .pac-container { z-index: 3000 !important; }
   </style>
 </head>
 <body>
@@ -221,13 +229,16 @@
     <div class="form-container">
       <h3 style="margin-bottom:12px; color:#3b5998;" id="tituloFormNuevo">➕ Registrar Préstamo y Cliente</h3>
       
+      <!-- Campo oculto para guardar el ID del cliente si se trata de una renovación -->
+      <input type="hidden" id="renovacionClienteId" value="">
+
       <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="nombre" placeholder="Nombre completo"></div>
       <div class="form-group"><label>Teléfono (WhatsApp)</label><input type="tel" id="telefono" placeholder="Ej: 5491122334455"></div>
       
       <div class="form-group">
         <label>🏠 Dirección de Residencia</label>
         <div class="input-with-btn">
-          <input type="text" id="dirResidencia" placeholder="Ej: Calle 10 # 4-20">
+          <input type="text" id="dirResidencia" placeholder="Escribe la dirección...">
           <button type="button" class="btn-mapa" onclick="abrirMapa('dirResidencia')">🗺️ Ruta</button>
         </div>
       </div>
@@ -235,7 +246,7 @@
       <div class="form-group">
         <label>🏪 Dirección Local / Negocio</label>
         <div class="input-with-btn">
-          <input type="text" id="dirLocal" placeholder="Ej: Av. Principal # 15-30">
+          <input type="text" id="dirLocal" placeholder="Escribe la dirección...">
           <button type="button" class="btn-mapa" onclick="abrirMapa('dirLocal')">🗺️ Ruta</button>
         </div>
       </div>
@@ -451,6 +462,16 @@
       selectPlazo.appendChild(opt);
     }
 
+    // Inicializar Google Places Autocomplete para las direcciones si la API está disponible
+    window.addEventListener('load', () => {
+      if (window.google && window.google.maps && window.google.maps.places) {
+        const inputRes = document.getElementById('dirResidencia');
+        const inputLoc = document.getElementById('dirLocal');
+        if (inputRes) new google.maps.places.Autocomplete(inputRes);
+        if (inputLoc) new google.maps.places.Autocomplete(inputLoc);
+      }
+    });
+
     window.abrirMapa = (idInput) => {
       const direccion = document.getElementById(idInput).value.trim();
       if (!direccion) return alert("Por favor ingresa una dirección primero.");
@@ -572,6 +593,7 @@
     };
 
     window.guardarCliente = async () => {
+      const idRenovacion = document.getElementById('renovacionClienteId').value;
       const nombre = document.getElementById('nombre').value;
       const telefono = document.getElementById('telefono').value;
       const dirResidencia = document.getElementById('dirResidencia').value;
@@ -586,14 +608,27 @@
       const montoTotal = capital + (capital * (pct / 100));
       const cuota = montoTotal / plazo;
 
-      await addDoc(collection(db, "prestamos"), {
-        nombre, telefono, dirResidencia, dirLocal, fotoFachada: fotoFachadaBase64,
-        capital, pctInteres: pct, montoTotal, cuota, modalidad, plazo,
-        saldoPendiente: montoTotal, ultimoPagoFecha: "", fechaCreacion: todayStr,
-        totalAbonadoHoy: 0
-      });
+      if (idRenovacion) {
+        // Renovar cliente existente: actualiza el registro actual y lo regresa a la lista de pendientes inmediatamente
+        await updateDoc(doc(db, "prestamos", idRenovacion), {
+          nombre, telefono, dirResidencia, dirLocal, fotoFachada: fotoFachadaBase64,
+          capital, pctInteres: pct, montoTotal, cuota, modalidad, plazo,
+          saldoPendiente: montoTotal, ultimoPagoFecha: "", fechaCreacion: todayStr,
+          totalAbonadoHoy: 0
+        });
+        alert("¡Préstamo renovado exitosamente! El cliente ha pasado a la lista de Pendientes.");
+      } else {
+        // Crear nuevo cliente
+        await addDoc(collection(db, "prestamos"), {
+          nombre, telefono, dirResidencia, dirLocal, fotoFachada: fotoFachadaBase64,
+          capital, pctInteres: pct, montoTotal, cuota, modalidad, plazo,
+          saldoPendiente: montoTotal, ultimoPagoFecha: "", fechaCreacion: todayStr,
+          totalAbonadoHoy: 0
+        });
+        alert("¡Préstamo registrado exitosamente!");
+      }
 
-      alert("¡Préstamo registrado exitosamente!");
+      document.getElementById('renovacionClienteId').value = "";
       document.getElementById('tituloFormNuevo').innerText = "➕ Registrar Préstamo y Cliente";
       location.reload();
     };
@@ -602,6 +637,7 @@
       const c = todosLosClientes.find(x => x.id === id);
       if (!c) return;
 
+      document.getElementById('renovacionClienteId').value = c.id;
       document.getElementById('nombre').value = c.nombre;
       document.getElementById('telefono').value = c.telefono || '';
       document.getElementById('dirResidencia').value = c.dirResidencia || '';
