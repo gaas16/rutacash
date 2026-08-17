@@ -67,11 +67,16 @@
 
     /* ESTILOS INSPIRADOS EN LA IMAGEN DE RESUMEN V5 */
     .summary-box-v5 { background: white; margin: 10px; border: 1px solid #ccc; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-    .v5-header { background: linear-gradient(to bottom, #dcdcdc, #b5b5b5); padding: 8px 12px; font-weight: bold; color: #000; font-size: 14px; border-bottom: 1px solid #aaa; }
+    .v5-header { background: linear-gradient(to bottom, #dcdcdc, #b5b5b5); padding: 8px 12px; font-weight: bold; color: #000; font-size: 14px; border-bottom: 1px solid #aaa; display: flex; justify-content: space-between; align-items: center; }
     .v5-row { display: flex; justify-content: space-between; padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #e5e5e5; }
     .v5-row:nth-child(even) { background-color: #f7f7f7; }
     .v5-row.highlight { background-color: #e3f2fd; font-weight: bold; }
     .v5-row.total-capital { background-color: #27ae60; color: white; font-weight: bold; font-size: 14px; }
+
+    .btn-unlock-admin {
+      background: #34495e; color: white; border: none; padding: 4px 8px; border-radius: 4px;
+      font-size: 11px; cursor: pointer; font-weight: bold;
+    }
 
     .form-container { background: white; margin: 10px; padding: 15px; border-radius: 6px; }
     .form-group { margin-bottom: 10px; }
@@ -162,7 +167,7 @@
 
   <div id="tabResumen" class="tab-content">
     <div class="summary-box-v5">
-      <div class="v5-header">Resumen del Día</div>
+      <div class="v5-header"><span>Resumen del Día</span></div>
       <div class="v5-row"><span>Fecha de Ruta</span><b id="resFecha">-</b></div>
       <div class="v5-row"><span>Clientes Ausentes</span><b id="resClientesAusentes">0</b></div>
       <div class="v5-row"><span>Número Clientes</span><b id="resNumClientes">0</b></div>
@@ -176,10 +181,13 @@
       <div class="v5-row"><span>Otros Ingresos</span><b id="resIngresos" style="color:#27ae60;">$0.00</b></div>
       <div class="v5-row highlight"><span>Saldo Real en Caja</span><b id="resCajaActual" style="color:#16a085;">$0.00</b></div>
       
-      <div class="v5-header" style="margin-top:10px; background:linear-gradient(to bottom, #bdc3c7, #95a5a6);">💼 Control Total de Cartera (Sin Gastos/Ingresos)</div>
-      <div class="v5-row"><span>Total Prestado (Capital Viento)</span><b id="resTotalPrestado">$0.00</b></div>
-      <div class="v5-row"><span>Cartera Total por Recoger (Falta)</span><b id="resCarteraPendiente" style="color:#e67e22;">$0.00</b></div>
-      <div class="v5-row total-capital"><span>CAPITAL TOTAL (Caja Actual + Por Recoger)</span><b id="resCapitalTotalGlobal">$0.00</b></div>
+      <div class="v5-header" style="margin-top:10px; background:linear-gradient(to bottom, #bdc3c7, #95a5a6);">
+        <span>💼 Control Total (Privado Admin)</span>
+        <button id="btnVerCartera" class="btn-unlock-admin" onclick="solicitarVerCartera()">🔒 Ver Datos</button>
+      </div>
+      <div class="v5-row"><span>Total Prestado (Capital Viento)</span><b id="resTotalPrestado">****</b></div>
+      <div class="v5-row"><span>Cartera Total por Recoger (Falta)</span><b id="resCarteraPendiente" style="color:#e67e22;">****</b></div>
+      <div class="v5-row total-capital"><span>CAPITAL TOTAL (Caja + Por Recoger)</span><b id="resCapitalTotalGlobal">****</b></div>
     </div>
     
     <div style="padding: 0 10px; margin-bottom: 15px;">
@@ -354,14 +362,14 @@
 
   <div id="modalAdminDelete" class="modal">
     <div class="modal-card" style="max-width: 320px; text-align: center;">
-      <h3 style="color: #3b5998; margin-bottom: 10px;">Confirmar Eliminación</h3>
-      <p style="font-size: 14px; color: #555; margin-bottom: 12px;">Ingresa la contraseña de administrador:</p>
+      <h3 style="color: #3b5998; margin-bottom: 10px;" id="tituloModalAdmin">Confirmar Acción Admin</h3>
+      <p style="font-size: 14px; color: #555; margin-bottom: 12px;" id="descModalAdmin">Ingresa la contraseña de administrador:</p>
       <input type="password" id="passAdminInput" placeholder="Contraseña Admin" style="width: 100%; padding: 8px; margin-bottom: 8px; box-sizing: border-box; text-align: center;">
       <div id="errPassAdmin" style="color: red; font-size: 12px; display: none; margin-bottom: 8px;">Contraseña incorrecta</div>
       
       <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 10px;">
         <button onclick="cerrarModalAdmin()" style="flex: 1; padding: 8px 12px; background: #aaa; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Cancelar</button>
-        <button onclick="confirmarYBorrar()" style="flex: 1; padding: 8px 12px; background: #e74c3c; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Eliminar</button>
+        <button onclick="confirmarAccionAdmin()" style="flex: 1; padding: 8px 12px; background: #27ae60; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Aceptar</button>
       </div>
     </div>
   </div>
@@ -409,7 +417,9 @@
 
     let todosLosClientes = [];
     let filtroActual = 'PENDIENTES';
+    let accionAdminPendiente = null; // 'borrar' o 'ver_cartera'
     let elementoPendienteAEliminar = null;
+    let carteraRevelada = false;
     const CLAVE_ADMIN = "admin123";
 
     let baseInicialCaja = 0;
@@ -417,6 +427,11 @@
     let totalIngresos = 0;
     let fotoFachadaBase64 = "";
     let cajaCerradaHoy = false;
+
+    // Guardar valores calculados para revelarlos con la clave
+    let valTotalPrestado = 0;
+    let valCarteraPendiente = 0;
+    let valCapitalTotalGlobal = 0;
 
     const selectPlazo = document.getElementById('plazo');
     for (let i = 1; i <= 60; i++) {
@@ -696,7 +711,12 @@
       });
 
       const efectivoCaja = baseInicialCaja + recaudoDia + totalIngresos - totalEgresos - nuevosPrestamosHoy;
-      const capitalTotalGlobal = efectivoCaja + carteraPendiente; // CUENTA TOTAL LIMPIA (Caja + Por Recoger)
+      const capitalTotalGlobal = efectivoCaja + carteraPendiente;
+
+      // Guardar internamente los valores
+      valTotalPrestado = totalPrestado;
+      valCarteraPendiente = carteraPendiente;
+      valCapitalTotalGlobal = capitalTotalGlobal;
 
       // RENDERIZAR V5 RESUMEN
       document.getElementById('resFecha').innerText = todayStr;
@@ -712,10 +732,8 @@
       document.getElementById('resIngresos').innerText = `$${totalIngresos.toFixed(2)}`;
       document.getElementById('resCajaActual').innerText = `$${efectivoCaja.toFixed(2)}`;
 
-      // SECCIÓN CUENTA TOTAL / CARTERA
-      document.getElementById('resTotalPrestado').innerText = `$${totalPrestado.toFixed(2)}`;
-      document.getElementById('resCarteraPendiente').innerText = `$${carteraPendiente.toFixed(2)}`;
-      document.getElementById('resCapitalTotalGlobal').innerText = `$${capitalTotalGlobal.toFixed(2)}`;
+      // MANTENER PRIVACIDAD SI NO SE HA DESBLOQUEADO
+      actualizarVistaCarteraPrivada();
 
       const btnCierre = document.getElementById('btnCierreCaja');
       const msgCierre = document.getElementById('msgCierreInfo');
@@ -736,6 +754,34 @@
 
       renderizarLista();
     }
+
+    function actualizarVistaCarteraPrivada() {
+      if (carteraRevelada) {
+        document.getElementById('resTotalPrestado').innerText = `$${valTotalPrestado.toFixed(2)}`;
+        document.getElementById('resCarteraPendiente').innerText = `$${valCarteraPendiente.toFixed(2)}`;
+        document.getElementById('resCapitalTotalGlobal').innerText = `$${valCapitalTotalGlobal.toFixed(2)}`;
+        document.getElementById('btnVerCartera').innerText = "🔓 Ocultar";
+      } else {
+        document.getElementById('resTotalPrestado').innerText = "****";
+        document.getElementById('resCarteraPendiente').innerText = "****";
+        document.getElementById('resCapitalTotalGlobal').innerText = "****";
+        document.getElementById('btnVerCartera').innerText = "🔒 Ver Datos";
+      }
+    }
+
+    window.solicitarVerCartera = () => {
+      if (carteraRevelada) {
+        carteraRevelada = false;
+        actualizarVistaCarteraPrivada();
+      } else {
+        accionAdminPendiente = 'ver_cartera';
+        document.getElementById('tituloModalAdmin').innerText = "Acceso Privado Administrador";
+        document.getElementById('descModalAdmin').innerText = "Ingresa la clave Admin para revelar el saldo total:";
+        document.getElementById('passAdminInput').value = '';
+        document.getElementById('errPassAdmin').style.display = 'none';
+        document.getElementById('modalAdminDelete').style.display = 'flex';
+      }
+    };
 
     function renderizarLista() {
       const contenedor = document.getElementById('contenedorLista');
@@ -976,7 +1022,10 @@
     };
 
     window.solicitarBorradoAdmin = (id, tipo) => {
+      accionAdminPendiente = 'borrar';
       elementoPendienteAEliminar = { id, tipo };
+      document.getElementById('tituloModalAdmin').innerText = "Confirmar Eliminación";
+      document.getElementById('descModalAdmin').innerText = "Ingresa la contraseña de administrador:";
       document.getElementById('passAdminInput').value = '';
       document.getElementById('errPassAdmin').style.display = 'none';
       document.getElementById('modalAdminDelete').style.display = 'flex';
@@ -985,13 +1034,14 @@
     window.cerrarModalAdmin = () => {
       document.getElementById('modalAdminDelete').style.display = 'none';
       elementoPendienteAEliminar = null;
+      accionAdminPendiente = null;
     };
 
-    window.confirmarYBorrar = async () => {
+    window.confirmarAccionAdmin = async () => {
       const claveIngresada = document.getElementById('passAdminInput').value;
       
       if (claveIngresada === CLAVE_ADMIN) {
-        if (elementoPendienteAEliminar) {
+        if (accionAdminPendiente === 'borrar' && elementoPendienteAEliminar) {
           const { id, tipo } = elementoPendienteAEliminar;
           if (tipo === 'cliente') {
             await deleteDoc(doc(db, "prestamos", id));
@@ -999,6 +1049,9 @@
             await deleteDoc(doc(db, "movimientos", id));
           }
           cargarDatos();
+        } else if (accionAdminPendiente === 'ver_cartera') {
+          carteraRevelada = true;
+          actualizarVistaCarteraPrivada();
         }
         cerrarModalAdmin();
       } else {
