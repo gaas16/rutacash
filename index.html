@@ -65,7 +65,6 @@
     .btn-edit { background: #3498db; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
     .btn-delete { background: #e74c3c; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
 
-    /* ESTILOS INSPIRADOS EN LA IMAGEN DE RESUMEN V5 */
     .summary-box-v5 { background: white; margin: 10px; border: 1px solid #ccc; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
     .v5-header { background: linear-gradient(to bottom, #dcdcdc, #b5b5b5); padding: 8px 12px; font-weight: bold; color: #000; font-size: 14px; border-bottom: 1px solid #aaa; display: flex; justify-content: space-between; align-items: center; }
     .v5-row { display: flex; justify-content: space-between; padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #e5e5e5; }
@@ -257,7 +256,11 @@
       </div>
       <div class="form-group">
         <label>Modalidad</label>
-        <select id="modalidad"><option value="Diario">Diario</option><option value="Semanal">Semanal</option></select>
+        <select id="modalidad" onchange="calcularPrestamo()">
+          <option value="Diario">Diario</option>
+          <option value="Semanal">Semanal</option>
+          <option value="Mensual">Mensual</option>
+        </select>
       </div>
       <div class="form-group">
         <label>Plazo (Cuotas)</label>
@@ -278,7 +281,7 @@
         <h3 id="mcNombre">Cliente</h3>
         <div class="info-cuotas-box">
           <div>Cuotas Pagadas: <b id="mcPagadas">0</b>/<b id="mcTotales">0</b> | Atrasadas: <b id="mcAtrasadas" style="color:#e74c3c;">0</b></div>
-          <div>Pendientes: <b id="mcPendientes">0</b></div>
+          <div>Pendientes: <b id="mcPendientes">0</b> | Modalidad: <b id="mcModalidad" style="color:#3b5998;">Diario</b></div>
         </div>
         <div style="display:flex; gap:10px; margin-bottom:10px; font-size:12px;">
           <a id="mcBtnTel" href="#" style="color:#0288d1; text-decoration:none;">📞 Llamar</a>
@@ -353,6 +356,14 @@
       <input type="hidden" id="editId">
       <div class="form-group"><label>Nombre</label><input type="text" id="editNombre"></div>
       <div class="form-group"><label>Teléfono</label><input type="tel" id="editTelefono"></div>
+      <div class="form-group">
+        <label>Modalidad</label>
+        <select id="editModalidad">
+          <option value="Diario">Diario</option>
+          <option value="Semanal">Semanal</option>
+          <option value="Mensual">Mensual</option>
+        </select>
+      </div>
       <div class="form-group"><label>Saldo Pendiente ($)</label><input type="number" id="editSaldo"></div>
       <div class="form-group"><label>Valor de Cuota ($)</label><input type="number" id="editCuota"></div>
       <button class="btn-submit" onclick="guardarEdicionCliente()">Guardar Cambios</button>
@@ -417,7 +428,7 @@
 
     let todosLosClientes = [];
     let filtroActual = 'PENDIENTES';
-    let accionAdminPendiente = null; // 'borrar' o 'ver_cartera'
+    let accionAdminPendiente = null;
     let elementoPendienteAEliminar = null;
     let carteraRevelada = false;
     const CLAVE_ADMIN = "admin123";
@@ -428,7 +439,6 @@
     let fotoFachadaBase64 = "";
     let cajaCerradaHoy = false;
 
-    // Guardar valores calculados para revelarlos con la clave
     let valTotalPrestado = 0;
     let valCarteraPendiente = 0;
     let valCapitalTotalGlobal = 0;
@@ -596,6 +606,7 @@
       document.getElementById('telefono').value = c.telefono || '';
       document.getElementById('dirResidencia').value = c.dirResidencia || '';
       document.getElementById('dirLocal').value = c.dirLocal || '';
+      document.getElementById('modalidad').value = c.modalidad || 'Diario';
       
       if (c.fotoFachada) {
         fotoFachadaBase64 = c.fotoFachada;
@@ -713,12 +724,10 @@
       const efectivoCaja = baseInicialCaja + recaudoDia + totalIngresos - totalEgresos - nuevosPrestamosHoy;
       const capitalTotalGlobal = efectivoCaja + carteraPendiente;
 
-      // Guardar internamente los valores
       valTotalPrestado = totalPrestado;
       valCarteraPendiente = carteraPendiente;
       valCapitalTotalGlobal = capitalTotalGlobal;
 
-      // RENDERIZAR V5 RESUMEN
       document.getElementById('resFecha').innerText = todayStr;
       document.getElementById('resClientesAusentes').innerText = ausentesHoy;
       document.getElementById('resNumClientes').innerText = clientesActivos;
@@ -732,7 +741,6 @@
       document.getElementById('resIngresos').innerText = `$${totalIngresos.toFixed(2)}`;
       document.getElementById('resCajaActual').innerText = `$${efectivoCaja.toFixed(2)}`;
 
-      // MANTENER PRIVACIDAD SI NO SE HA DESBLOQUEADO
       actualizarVistaCarteraPrivada();
 
       const btnCierre = document.getElementById('btnCierreCaja');
@@ -825,7 +833,7 @@
         div.innerHTML = `
           <div class="icon-status ${statusClass}">${statusIcon}</div>
           <div class="client-info">
-            <div class="name">${idx + 1}. ${c.nombre}</div>
+            <div class="name">${idx + 1}. ${c.nombre} <small style="font-weight:normal; color:#777;">(${c.modalidad || 'Diario'})</small></div>
             <div class="details">Cuota: <b>$${c.cuota.toFixed(2)}</b> | Saldo: <b>$${c.saldoPendiente.toFixed(2)}</b></div>
           </div>
           <div class="actions-group">
@@ -857,6 +865,7 @@
 
       document.getElementById('mcClienteId').value = c.id;
       document.getElementById('mcNombre').innerText = c.nombre;
+      document.getElementById('mcModalidad').innerText = c.modalidad || 'Diario';
       
       const cuotasPagadas = Math.floor((c.montoTotal - c.saldoPendiente) / c.cuota);
       const cuotasTotales = c.plazo || 1;
@@ -1066,6 +1075,7 @@
       document.getElementById('editId').value = cliente.id;
       document.getElementById('editNombre').value = cliente.nombre;
       document.getElementById('editTelefono').value = cliente.telefono || '';
+      document.getElementById('editModalidad').value = cliente.modalidad || 'Diario';
       document.getElementById('editSaldo').value = cliente.saldoPendiente;
       document.getElementById('editCuota').value = cliente.cuota;
 
@@ -1080,11 +1090,12 @@
       const id = document.getElementById('editId').value;
       const nombre = document.getElementById('editNombre').value;
       const telefono = document.getElementById('editTelefono').value;
+      const modalidad = document.getElementById('editModalidad').value;
       const saldoPendiente = parseFloat(document.getElementById('editSaldo').value) || 0;
       const cuota = parseFloat(document.getElementById('editCuota').value) || 0;
 
       await updateDoc(doc(db, "prestamos", id), {
-        nombre, telefono, saldoPendiente, cuota
+        nombre, telefono, modalidad, saldoPendiente, cuota
       });
 
       cerrarModalEditar();
