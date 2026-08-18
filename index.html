@@ -79,7 +79,7 @@
     }
 
     .form-container { background: white; margin: 10px; padding: 15px; border-radius: 6px; }
-    .form-group { margin-bottom: 10px; }
+    .form-group { margin-bottom: 10px; position: relative; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; }
     .form-group input, .form-group select { width: 100%; padding: 9px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
     .form-row { display: flex; gap: 8px; }
@@ -91,6 +91,15 @@
       background-color: #0288d1; color: white; border: none; padding: 8px 10px;
       border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; white-space: nowrap;
     }
+
+    /* Lista Autocompletado */
+    .autocomplete-results {
+      position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc;
+      border-top: none; z-index: 1000; max-height: 150px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      border-radius: 0 0 4px 4px;
+    }
+    .autocomplete-item { padding: 8px 10px; font-size: 12px; cursor: pointer; border-bottom: 1px solid #eee; }
+    .autocomplete-item:hover { background-color: #f0f0f0; }
 
     .preview-fachada {
       width: 100%; max-height: 180px; object-fit: cover; border-radius: 6px;
@@ -192,6 +201,7 @@
     
     <div style="padding: 0 10px; margin-bottom: 15px;">
       <button class="btn-close-box" id="btnCierreCaja" onclick="realizarCierreCaja()">🔒 Realizar Cierre de Caja</button>
+      <button style="background:#7f8c8d; color:white; border:none; padding:8px; border-radius:4px; width:100%; margin-top:8px; font-size:12px; cursor:pointer;" onclick="repararBaseCaja()">🔧 Forzar Recalculo / Reparar Base de Hoy</button>
       <div id="msgCierreInfo" style="font-size: 12px; color: #e74c3c; text-align: center; margin-top: 5px; font-weight: bold;"></div>
     </div>
   </div>
@@ -230,17 +240,19 @@
       <div class="form-group">
         <label>🏠 Dirección de Residencia</label>
         <div class="input-with-btn">
-          <input type="text" id="dirResidencia" placeholder="Escribe la dirección...">
+          <input type="text" id="dirResidencia" placeholder="Escribe dirección..." oninput="buscarDireccionOpenStreet(this, 'resultsResidencia')">
           <button type="button" class="btn-mapa" onclick="abrirMapa('dirResidencia')">🗺️ Ruta</button>
         </div>
+        <div id="resultsResidencia" class="autocomplete-results"></div>
       </div>
 
       <div class="form-group">
         <label>🏪 Dirección Local / Negocio</label>
         <div class="input-with-btn">
-          <input type="text" id="dirLocal" placeholder="Escribe la dirección...">
+          <input type="text" id="dirLocal" placeholder="Escribe dirección..." oninput="buscarDireccionOpenStreet(this, 'resultsLocal')">
           <button type="button" class="btn-mapa" onclick="abrirMapa('dirLocal')">🗺️ Ruta</button>
         </div>
+        <div id="resultsLocal" class="autocomplete-results"></div>
       </div>
 
       <div class="form-group">
@@ -428,6 +440,7 @@
 
     let localSessionId = localStorage.getItem('rutacash_session_id');
     let unsubscribeSession = null;
+    let timerBusqueda = null;
 
     let todosLosClientes = [];
     let filtroActual = 'PENDIENTES';
@@ -453,6 +466,39 @@
       if (i === 24) opt.selected = true;
       selectPlazo.appendChild(opt);
     }
+
+    // Buscador OpenStreetMap (Gratuito y sin claves)
+    window.buscarDireccionOpenStreet = (inputEl, containerId) => {
+      clearTimeout(timerBusqueda);
+      const query = inputEl.value.trim();
+      const container = document.getElementById(containerId);
+
+      if (query.length < 3) {
+        container.innerHTML = '';
+        return;
+      }
+
+      timerBusqueda = setTimeout(async () => {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
+          const results = await res.json();
+          container.innerHTML = '';
+
+          results.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-item';
+            div.innerText = item.display_name;
+            div.onclick = () => {
+              inputEl.value = item.display_name;
+              container.innerHTML = '';
+            };
+            container.appendChild(div);
+          });
+        } catch (e) {
+          container.innerHTML = '';
+        }
+      }, 400);
+    };
 
     window.abrirMapa = (idInput) => {
       const direccion = document.getElementById(idInput).value.trim();
@@ -597,7 +643,7 @@
           saldoPendiente: montoTotal, ultimoPagoFecha: "", fechaCreacion: todayStr,
           totalAbonadoHoy: 0
         });
-        alert("¡Préstamo renovado exitosamente! El cliente ha pasado a la lista de Pendientes.");
+        alert("¡Préstamo renovado exitosamente!");
       } else {
         await addDoc(collection(db, "prestamos"), {
           nombre, telefono, dirResidencia, dirLocal, fotoFachada: fotoFachadaBase64,
@@ -653,6 +699,26 @@
       cargarDatos();
     };
 
+    window.repararBaseCaja = async () => {
+      const todasCajas = await getDocs(collection(db, "caja"));
+      let fechasOrdenadas = [];
+      todasCajas.forEach(docCaja => {
+        fechasOrdenadas.push({ fecha: docCaja.id, ...docCaja.data() });
+      });
+      fechasOrdenadas.sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+      const anteriores = fechasOrdenadas.filter(x => x.fecha < todayStr && x.baseInicial !== undefined);
+      if (anteriores.length > 0) {
+        const ultimaCajaValida = anteriores[anteriores.length - 1];
+        baseInicialCaja = ultimaCajaValida.baseInicial || 0;
+        await setDoc(doc(db, "caja", todayStr), { baseInicial: baseInicialCaja, cerrada: false }, { merge: true });
+        alert(`¡Base restablecida con éxito! Saldo inicial sincronizado: $${baseInicialCaja.toFixed(2)}`);
+        cargarDatos();
+      } else {
+        alert("No se encontraron cierres anteriores registrados.");
+      }
+    };
+
     async function cargarDatos() {
       todayStr = getFechaOperativa();
       document.getElementById('fechaHoy').innerText = todayStr;
@@ -665,13 +731,19 @@
       } else {
         cajaCerradaHoy = false;
         const todasCajas = await getDocs(collection(db, "caja"));
-        let ultimaFecha = "";
+        let fechasOrdenadas = [];
         todasCajas.forEach(docCaja => {
-          if (docCaja.id < todayStr && docCaja.id > ultimaFecha) {
-            ultimaFecha = docCaja.id;
-            baseInicialCaja = docCaja.data().baseInicial || 0;
-          }
+          fechasOrdenadas.push({ fecha: docCaja.id, ...docCaja.data() });
         });
+        fechasOrdenadas.sort((a, b) => a.fecha.localeCompare(b.fecha));
+        const anteriores = fechasOrdenadas.filter(x => x.fecha < todayStr);
+
+        if (anteriores.length > 0) {
+          baseInicialCaja = anteriores[anteriores.length - 1].baseInicial || 0;
+          await setDoc(doc(db, "caja", todayStr), { baseInicial: baseInicialCaja, cerrada: false }, { merge: true });
+        } else {
+          baseInicialCaja = 0;
+        }
       }
 
       document.getElementById('bannerCierreBloqueo').style.display = cajaCerradaHoy ? 'block' : 'none';
@@ -1038,9 +1110,9 @@
           });
         });
         await Promise.all(promesasReset);
-        alert(`¡Cierre de la jornada anterior completado!\n\n1. Base de $${efectivo.toFixed(2)} asignada a HOY.\n2. La app ya está totalmente lista para operar el día de hoy.`);
+        alert(`¡Cierre completado!\nBase asignada: $${efectivo.toFixed(2)}`);
       } else {
-        alert(`¡Cierre de caja completado!\n\n1. Base de $${efectivo.toFixed(2)} guardada para mañana.\n2. Los cobros quedan bloqueados hasta cambiar de día.`);
+        alert(`¡Cierre completado!\nBase guardada para mañana: $${efectivo.toFixed(2)}`);
       }
 
       cargarDatos();
