@@ -113,7 +113,7 @@
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; height: 55px;
       background-color: #ffffff; border-top: 1px solid #ccc;
-      display: flex; justify-content: space-around; align-items: center; z-index: 999;
+      display: flex; justify-style: space-around; align-items: center; z-index: 999;
     }
     .nav-item {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -125,8 +125,6 @@
       background-color: #e74c3c; color: white; padding: 10px; text-align: center;
       font-size: 13px; font-weight: bold; display: none;
     }
-
-    .pac-container { z-index: 3000 !important; }
   </style>
 </head>
 <body>
@@ -396,25 +394,6 @@
     <button class="nav-item" onclick="cambiarTab('Gastos', this)">💸 Movimientos</button>
     <button class="nav-item" id="navBtnNuevo" onclick="cambiarTab('Nuevo', this)">➕ Nuevo</button>
   </div>
-
-  <script>
-    // Función callback global requerida por Google Maps para inicializar de forma segura
-    function initGooglePlaces() {
-      try {
-        if (window.google && window.google.maps && window.google.maps.places) {
-          const inputRes = document.getElementById('dirResidencia');
-          const inputLoc = document.getElementById('dirLocal');
-          if (inputRes) new google.maps.places.Autocomplete(inputRes);
-          if (inputLoc) new google.maps.places.Autocomplete(inputLoc);
-        }
-      } catch (err) {
-        console.warn("Autocompletado de Google Maps no disponible:", err);
-      }
-    }
-  </script>
-
-  <!-- Carga segura con callback para evitar congelamientos al escribir -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY_AQUI&libraries=places&callback=initGooglePlaces" async defer></script>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
