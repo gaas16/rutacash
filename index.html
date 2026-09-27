@@ -13,7 +13,7 @@
             --primary: #1e3a8a;
             --primary-light: #3b82f6;
             --success: #16a34a;
-            --warning: #ca8a04;
+            --warning: #d97706;
             --danger: #dc2626;
             --bg: #f1f5f9;
             --card-bg: #ffffff;
@@ -134,9 +134,7 @@
 
         .nav-tabs {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            bottom: 0; left: 0; right: 0;
             background: white;
             display: flex;
             border-top: 1px solid #cbd5e1;
@@ -161,14 +159,24 @@
             background: #eff6ff;
         }
 
+        /* Tarjetas de Clientes */
         .client-card {
-            border-left: 5px solid var(--primary-light);
+            border-left: 6px solid var(--primary-light);
             padding: 12px;
             margin-bottom: 10px;
             background: white;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
+
+        /* Estados de Mora (Ruta) */
+        .client-card.mora-5 { border-left-color: var(--warning) !important; background: #fffbe2; }
+        .client-card.mora-10 { border-left-color: var(--danger) !important; background: #fff0f0; }
+
+        /* Estados de Pago (Registros General) */
+        .client-card.status-pago { border-left-color: var(--success) !important; }
+        .client-card.status-abono { border-left-color: var(--warning) !important; }
+        .client-card.status-no_pago { border-left-color: var(--danger) !important; }
 
         .client-header {
             display: flex;
@@ -194,6 +202,19 @@
             font-size: 0.85rem;
         }
 
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .badge-pago { background-color: var(--success); }
+        .badge-abono { background-color: var(--warning); }
+        .badge-no_pago { background-color: var(--danger); }
+
         .section { display: none; }
         .section.active { display: block; }
 
@@ -216,6 +237,14 @@
             max-height: 90vh;
             overflow-y: auto;
         }
+
+        .pago-inmediato-box {
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
     </style>
 </head>
 <body>
@@ -227,29 +256,24 @@
         <!-- 1. PESTAÑA: RUTA DE COBRO -->
         <div id="sec-ruta" class="section active">
             <div class="card">
-                <div class="card-title">Clientes Pendientes de Cobro</div>
+                <div class="card-title">Clientes Pendientes de Cobro Hoy</div>
                 <div id="lista-pendientes"></div>
             </div>
         </div>
 
-        <!-- 2. PESTAÑA: REGISTROS -->
+        <!-- 2. PESTAÑA: REGISTROS GENERALES DE HOY -->
         <div id="sec-registros" class="section">
             <div class="card">
-                <div class="card-title">Gestión de Cobros del Día</div>
-                <select id="filtro-estado" onchange="renderizarRegistros()">
-                    <option value="pago">Clientes que Pagaron</option>
-                    <option value="abono">Clientes que Abonaron</option>
-                    <option value="no_pago">Clientes que NO Pagaron</option>
-                </select>
+                <div class="card-title">General de Cobros del Día</div>
                 <div id="lista-registrados"></div>
             </div>
         </div>
 
-        <!-- 3. PESTAÑA: NUEVO CLIENTE / RENOVACIÓN -->
+        <!-- 3. PESTAÑA: NUEVO CLIENTE -->
         <div id="sec-nuevo" class="section">
             <div class="card">
-                <div class="card-title" id="form-titulo">Registro de Cliente Nuevo</div>
-                <form id="form-cliente" onsubmit="guardarCliente(event)">
+                <div class="card-title">Registro de Cliente Nuevo</div>
+                <form id="form-cliente" onsubmit="guardarCliente(event, 'normal')">
                     
                     <label>Nombre *</label>
                     <input type="text" id="cli-nombre" required placeholder="Ej: Juan">
@@ -275,7 +299,7 @@
                         <div>
                             <label>Frecuencia de Pago *</label>
                             <select id="cli-frecuencia" required>
-                                <option value="Diario">Diario</option>
+                                <option value="Diario" selected>Diario</option>
                                 <option value="Semanal">Semanal</option>
                                 <option value="Mensual">Mensual</option>
                             </select>
@@ -298,20 +322,30 @@
                             <input type="number" id="cli-monto" oninput="calcularValores()" required placeholder="0.00">
                         </div>
                         <div>
-                            <label>Nº de Cuotas (1 a 60) *</label>
-                            <select id="cli-cuotas" onchange="calcularValores()" required>
-                                <!-- Generado por JS del 1 al 60 -->
+                            <label>Nº de Cuotas / Días *</label>
+                            <select id="cli-cuotas" onchange="calcularValores()" required></select>
+                        </div>
+                    </div>
+
+                    <div class="calc-box">
+                        <p><strong>Total a Pagar:</strong> R$ <span id="calc-total">0.00</span></p>
+                        <p><strong>Valor por Cuota:</strong> R$ <span id="calc-valor-cuota">0.00</span></p>
+                    </div>
+
+                    <!-- OPCIÓN DE COBRO INMEDIATO -->
+                    <div class="pago-inmediato-box">
+                        <label style="color:var(--primary);">💵 ¿El cliente pagó/abonó hoy mismo la 1ª cuota?</label>
+                        <div class="grid-2" style="margin-top:6px;">
+                            <input type="number" id="monto-primer-pago" placeholder="Monto abonado hoy">
+                            <select id="tipo-primer-pago">
+                                <option value="pago">Cuota Completa</option>
+                                <option value="abono">Abono Parcial</option>
                             </select>
                         </div>
                     </div>
 
-                    <!-- CAJA DE CÁLCULO AUTOMÁTICO -->
-                    <div class="calc-box">
-                        <p><strong>Total con Interés:</strong> R$ <span id="calc-total">0.00</span></p>
-                        <p><strong>Valor por Cuota:</strong> R$ <span id="calc-valor-cuota">0.00</span></p>
-                    </div>
-
-                    <button type="submit" class="btn btn-success">Guardar y Añadir a Ruta</button>
+                    <button type="submit" class="btn btn-primary">💾 Guardar (Inicia cobro mañana)</button>
+                    <button type="button" class="btn btn-success" style="margin-top:8px;" onclick="guardarConPagoHoy()">⚡ Guardar y Registrar Pago Hoy</button>
                 </form>
             </div>
         </div>
@@ -339,9 +373,9 @@
         <!-- 5. PESTAÑA: RESUMEN Y ADMIN -->
         <div id="sec-resumen" class="section">
             <div class="card">
-                <div class="card-title">Resumen del Día</div>
+                <div class="card-title">Resumen del Día Actual</div>
                 <p><strong>Recaudado Hoy:</strong> <span id="res-recaudo">R$ 0.00</span></p>
-                <p><strong>Cobrados:</strong> <span id="res-cobrados">0</span> clientes</p>
+                <p><strong>Cobrados / Abonados:</strong> <span id="res-cobrados">0</span> clientes</p>
                 <p><strong>Clientes Nuevos:</strong> <span id="res-nuevos">0</span></p>
                 <p><strong>Efectividad de Cobro:</strong> <span id="res-porcentaje">0%</span></p>
             </div>
@@ -349,9 +383,11 @@
             <button class="btn btn-dark" onclick="solicitarAccesoAdmin()">Acceso Panel Administrador 🔒</button>
 
             <div id="panel-admin" class="card" style="display:none; margin-top:15px; border:2px solid var(--primary);">
-                <div class="card-title">Resumen de Cartera (Admin)</div>
+                <div class="card-title">Resumen de Cartera y Cierre</div>
                 <p><strong>Falta por Recaudar:</strong> <span id="adm-pendiente">R$ 0.00</span></p>
                 <p><strong>Capital Total Administrado:</strong> <span id="adm-capital">R$ 0.00</span></p>
+                <br>
+                <button class="btn btn-danger" onclick="ejecutarCierreDia()">🔒 Realizar Cierre Manual del Día</button>
             </div>
         </div>
 
@@ -374,7 +410,7 @@
             
             <label>Frecuencia de Pago *</label>
             <select id="renov-frecuencia">
-                <option value="Diario">Diario</option>
+                <option value="Diario" selected>Diario</option>
                 <option value="Semanal">Semanal</option>
                 <option value="Mensual">Mensual</option>
             </select>
@@ -426,7 +462,6 @@
         let clienteSeleccionadoRenov = null;
         const CLAVE_ADMIN = "1234";
 
-        // Inicializar opciones de cuotas del 1 al 60
         function cargarOpcionesCuotas() {
             const selectNuevo = document.getElementById('cli-cuotas');
             const selectRenov = document.getElementById('renov-cuotas');
@@ -434,12 +469,12 @@
             selectRenov.innerHTML = '';
 
             for (let i = 1; i <= 60; i++) {
-                selectNuevo.innerHTML += `<option value="${i}" ${i === 24 ? 'selected' : ''}>${i} cuotas / días</option>`;
-                selectRenov.innerHTML += `<option value="${i}" ${i === 24 ? 'selected' : ''}>${i} cuotas / días</option>`;
+                const isSelected = (i === 20) ? 'selected' : '';
+                selectNuevo.innerHTML += `<option value="${i}" ${isSelected}>${i} cuotas / días</option>`;
+                selectRenov.innerHTML += `<option value="${i}" ${isSelected}>${i} cuotas / días</option>`;
             }
         }
 
-        // Cálculo dinámico para Formulario Nuevo Cliente
         function calcularValores() {
             const monto = parseFloat(document.getElementById('cli-monto').value) || 0;
             const interes = parseFloat(document.getElementById('cli-interes').value) || 0;
@@ -450,9 +485,13 @@
 
             document.getElementById('calc-total').innerText = total.toFixed(2);
             document.getElementById('calc-valor-cuota').innerText = valorCuota.toFixed(2);
+
+            // Rellenar automáticamente monto del primer pago si está vacío
+            if(!document.getElementById('monto-primer-pago').value) {
+                document.getElementById('monto-primer-pago').placeholder = `Ej: ${valorCuota.toFixed(2)}`;
+            }
         }
 
-        // Cálculo dinámico para Renovaciones
         function calcularValoresRenovacion() {
             const monto = parseFloat(document.getElementById('renov-monto').value) || 0;
             const interes = parseFloat(document.getElementById('renov-interes').value) || 0;
@@ -476,13 +515,22 @@
             if(idSec === 'sec-resumen') renderizarResumen();
         }
 
-        function guardarCliente(e) {
-            e.preventDefault();
+        function guardarCliente(e, modo) {
+            if(e) e.preventDefault();
+
+            const form = document.getElementById('form-cliente');
+            if(!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
             const monto = parseFloat(document.getElementById('cli-monto').value);
             const interes = parseFloat(document.getElementById('cli-interes').value);
             const cuotas = parseInt(document.getElementById('cli-cuotas').value);
             const total = monto + (monto * (interes / 100));
             const valorCuota = total / cuotas;
+
+            const fechaHoy = new Date().toISOString().split('T')[0];
 
             const nuevo = {
                 id: Date.now(),
@@ -498,22 +546,62 @@
                 totalPagar: total,
                 cuotaVal: valorCuota,
                 saldoPendiente: total,
+                diasAtraso: 0,
+                fechaRegistro: fechaHoy,
                 esNuevo: true
             };
 
             clientes.push(nuevo);
+
+            // Si se seleccionó realizar pago inmediato el mismo día del préstamo
+            if(modo === 'pago_hoy') {
+                const montoIngresado = parseFloat(document.getElementById('monto-primer-pago').value) || valorCuota;
+                const tipoPago = document.getElementById('tipo-primer-pago').value;
+
+                cobrosDia.push({
+                    id: Date.now() + 1,
+                    clienteId: nuevo.id,
+                    estado: tipoPago,
+                    monto: montoIngresado,
+                    hora: new Date().toLocaleTimeString()
+                });
+
+                nuevo.saldoPendiente -= montoIngresado;
+            }
+
             localStorage.setItem('rc_clientes', JSON.stringify(clientes));
-            document.getElementById('form-cliente').reset();
+            localStorage.setItem('rc_cobros', JSON.stringify(cobrosDia));
+            
+            form.reset();
+            cargarOpcionesCuotas();
             calcularValores();
-            alert("Cliente registrado exitosamente.");
-            cambiarTab('sec-ruta', document.querySelectorAll('.tab-btn')[0]);
+
+            if(modo === 'pago_hoy') {
+                alert("Cliente registrado y primer pago contabilizado correctamente.");
+                cambiarTab('sec-registros', document.querySelectorAll('.tab-btn')[1]);
+            } else {
+                alert("Cliente registrado. Entrará en lista de cobro a partir de mañana.");
+                cambiarTab('sec-ruta', document.querySelectorAll('.tab-btn')[0]);
+            }
         }
 
+        function guardarConPagoHoy() {
+            guardarCliente(null, 'pago_hoy');
+        }
+
+        // Renderizar Lista de Pendientes (Solo clientes registrados antes de hoy o sin pago hoy)
         function renderizarRuta() {
             const cont = document.getElementById('lista-pendientes');
             cont.innerHTML = '';
 
-            const pendientes = clientes.filter(c => !cobrosDia.some(cob => cob.clienteId === c.id));
+            const fechaHoy = new Date().toISOString().split('T')[0];
+
+            // Filtro: No muestra a clientes creados HOY salvo que se decida explícitamente cobrarles, ni a los que ya registraron cobro hoy
+            const pendientes = clientes.filter(c => {
+                const yaCobroHoy = cobrosDia.some(cob => cob.clienteId === c.id);
+                const esDeHoy = c.fechaRegistro === fechaHoy;
+                return !yaCobroHoy && !esDeHoy;
+            });
 
             if(pendientes.length === 0) {
                 cont.innerHTML = '<p style="text-align:center; padding:20px; color:#64748b;">No hay clientes pendientes por cobrar hoy.</p>';
@@ -521,15 +609,19 @@
             }
 
             pendientes.forEach(c => {
+                let claseMora = '';
+                if(c.diasAtraso >= 10) claseMora = 'mora-10';
+                else if(c.diasAtraso >= 5) claseMora = 'mora-5';
+
                 cont.innerHTML += `
-                    <div class="client-card">
+                    <div class="client-card ${claseMora}">
                         <div class="client-header">
                             <span>${c.nombre} ${c.apellido}</span>
                             <span style="color:var(--primary)">R$ ${c.cuotaVal.toFixed(2)}</span>
                         </div>
                         <div class="client-info">
                             📍 ${c.direccion} | 📞 ${c.telefono} <br>
-                            🗓️ Pago: <strong>${c.frecuencia}</strong> | Saldo: R$ ${c.saldoPendiente.toFixed(2)}
+                            🗓️ Pago: <strong>${c.frecuencia}</strong> | Saldo: R$ ${c.saldoPendiente.toFixed(2)} | Atraso: <strong>${c.diasAtraso} días</strong>
                         </div>
                         <div class="action-group">
                             <button class="btn btn-success" onclick="registrarCobro(${c.id}, 'pago', ${c.cuotaVal})">Pagó</button>
@@ -551,7 +643,6 @@
                 hora: new Date().toLocaleTimeString()
             });
 
-            // Descontar saldo al cliente
             const cli = clientes.find(c => c.id === id);
             if(cli && estado !== 'no_pago') {
                 cli.saldoPendiente -= valor;
@@ -569,71 +660,42 @@
             }
         }
 
-        function abrirModalRenovar(id) {
-            clienteSeleccionadoRenov = clientes.find(c => c.id === id);
-            if(!clienteSeleccionadoRenov) return;
-
-            document.getElementById('renov-cliente-nombre').innerText = `${clienteSeleccionadoRenov.nombre} ${clienteSeleccionadoRenov.apellido}`;
-            document.getElementById('modal-renovar').style.display = 'flex';
-        }
-
-        function cerrarModalRenovar() {
-            document.getElementById('modal-renovar').style.display = 'none';
-        }
-
-        function confirmarRenovacion() {
-            const monto = parseFloat(document.getElementById('renov-monto').value);
-            const interes = parseFloat(document.getElementById('renov-interes').value);
-            const cuotas = parseInt(document.getElementById('renov-cuotas').value);
-            
-            if(!monto || monto <= 0) {
-                alert("Ingrese un monto válido.");
-                return;
-            }
-
-            const total = monto + (monto * (interes / 100));
-            const valorCuota = total / cuotas;
-
-            clienteSeleccionadoRenov.frecuencia = document.getElementById('renov-frecuencia').value;
-            clienteSeleccionadoRenov.monto = monto;
-            clienteSeleccionadoRenov.interes = interes;
-            clienteSeleccionadoRenov.cuotas = cuotas;
-            clienteSeleccionadoRenov.totalPagar = total;
-            clienteSeleccionadoRenov.cuotaVal = valorCuota;
-            clienteSeleccionadoRenov.saldoPendiente = total;
-
-            localStorage.setItem('rc_clientes', JSON.stringify(clientes));
-            cerrarModalRenovar();
-            alert("Crédito renovado exitosamente.");
-            renderizarRuta();
-        }
-
+        // Renderizar Lista General de Registros del Día
         function renderizarRegistros() {
-            const filtro = document.getElementById('filtro-estado').value;
             const cont = document.getElementById('lista-registrados');
             cont.innerHTML = '';
 
-            const filtrados = cobrosDia.filter(c => c.estado === filtro);
+            if(cobrosDia.length === 0) {
+                cont.innerHTML = '<p style="text-align:center; padding:20px; color:#64748b;">Aún no se han registrado pagos hoy.</p>';
+                return;
+            }
 
-            filtrados.forEach(reg => {
+            cobrosDia.forEach(reg => {
                 const cli = clientes.find(c => c.id === reg.clienteId);
                 if(!cli) return;
 
+                let textoEstado = 'PAGÓ';
+                if(reg.estado === 'abono') textoEstado = 'ABONÓ';
+                if(reg.estado === 'no_pago') textoEstado = 'NO PAGÓ';
+
                 cont.innerHTML += `
-                    <div class="client-card">
+                    <div class="client-card status-${reg.estado}">
                         <div class="client-header">
                             <span>${cli.nombre} ${cli.apellido}</span>
                             <span>R$ ${reg.monto.toFixed(2)}</span>
                         </div>
-                        <div class="client-info">Registrado a las: ${reg.hora}</div>
-                        <button class="btn btn-danger" style="margin-top:5px; padding:6px;" onclick="eliminarRegistro(${reg.id})">Eliminar Registro</button>
+                        <div class="client-info">
+                            <span class="badge badge-${reg.estado}">${textoEstado}</span>
+                            <span style="margin-left:8px;">Hora: ${reg.hora}</span>
+                        </div>
+                        <button class="btn btn-danger" style="margin-top:6px; padding:6px; font-size:0.85rem;" onclick="eliminarRegistro(${reg.id})">Deshacer / Eliminar</button>
                     </div>
                 `;
             });
         }
 
         function eliminarRegistro(regId) {
-            if(confirm("¿Desea eliminar este registro y devolver al cliente a pendientes?")) {
+            if(confirm("¿Desea eliminar este registro y regresar al cliente a pendientes?")) {
                 const reg = cobrosDia.find(c => c.id === regId);
                 if(reg) {
                     const cli = clientes.find(c => c.id === reg.clienteId);
@@ -643,6 +705,25 @@
                 localStorage.setItem('rc_cobros', JSON.stringify(cobrosDia));
                 localStorage.setItem('rc_clientes', JSON.stringify(clientes));
                 renderizarRegistros();
+            }
+        }
+
+        function ejecutarCierreDia() {
+            if(confirm("¿Está seguro de realizar el CIERRE MANUAL DEL DÍA? Se archivará la jornada y se actualizará el día.")) {
+                clientes.forEach(c => {
+                    const cobro = cobrosDia.find(cob => cob.clienteId === c.id);
+                    if(!cobro || cobro.estado === 'no_pago') {
+                        c.diasAtraso += 1;
+                    } else if(cobro.estado === 'pago') {
+                        if(c.diasAtraso > 0) c.diasAtraso -= 1;
+                    }
+                });
+
+                cobrosDia = [];
+                localStorage.setItem('rc_cobros', JSON.stringify(cobrosDia));
+                localStorage.setItem('rc_clientes', JSON.stringify(clientes));
+                alert("Cierre finalizado. El sistema está listo para la nueva jornada.");
+                location.reload();
             }
         }
 
@@ -675,6 +756,46 @@
             } else {
                 alert("Contraseña incorrecta.");
             }
+        }
+
+        function abrirModalRenovar(id) {
+            clienteSeleccionadoRenov = clientes.find(c => c.id === id);
+            if(!clienteSeleccionadoRenov) return;
+
+            document.getElementById('renov-cliente-nombre').innerText = `${clienteSeleccionadoRenov.nombre} ${clienteSeleccionadoRenov.apellido}`;
+            document.getElementById('modal-renovar').style.display = 'flex';
+        }
+
+        function cerrarModalRenovar() {
+            document.getElementById('modal-renovar').style.display = 'none';
+        }
+
+        function confirmarRenovacion() {
+            const monto = parseFloat(document.getElementById('renov-monto').value);
+            const interes = parseFloat(document.getElementById('renov-interes').value);
+            const cuotas = parseInt(document.getElementById('renov-cuotas').value);
+
+            if(!monto || monto <= 0) {
+                alert("Ingrese un monto válido.");
+                return;
+            }
+
+            const total = monto + (monto * (interes / 100));
+            const valorCuota = total / cuotas;
+
+            clienteSeleccionadoRenov.frecuencia = document.getElementById('renov-frecuencia').value;
+            clienteSeleccionadoRenov.monto = monto;
+            clienteSeleccionadoRenov.interes = interes;
+            clienteSeleccionadoRenov.cuotas = cuotas;
+            clienteSeleccionadoRenov.totalPagar = total;
+            clienteSeleccionadoRenov.cuotaVal = valorCuota;
+            clienteSeleccionadoRenov.saldoPendiente = total;
+            clienteSeleccionadoRenov.diasAtraso = 0;
+
+            localStorage.setItem('rc_clientes', JSON.stringify(clientes));
+            cerrarModalRenovar();
+            alert("Crédito renovado exitosamente.");
+            renderizarRuta();
         }
 
         function actualizarCategorias() {
