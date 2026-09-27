@@ -1,1134 +1,519 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>RutaCash - Sistema de Cobranza</title>
-
-  <style>
-    * { box-sizing: border-box; font-family: sans-serif; margin: 0; padding: 0; }
-    body { background-color: #f2f2f2; user-select: none; padding-bottom: 65px; }
-
-    #screenLogin {
-      display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: #3b5998; justify-content: center; align-items: center; z-index: 2000;
-    }
-    .login-card {
-      background: white; padding: 25px; border-radius: 8px; width: 85%; max-width: 350px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2); text-align: center;
-    }
-    .login-card h2 { color: #3b5998; margin-bottom: 15px; }
-    .login-card input {
-      width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #ccc;
-      border-radius: 4px; font-size: 15px;
-    }
-
-    .top-header {
-      background-color: #3b5998; color: white; padding: 12px 15px;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .top-header h2 { font-size: 16px; font-weight: normal; }
-    .top-header .date-badge { font-size: 11px; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px; }
-
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    .filter-section { background: white; padding: 10px 12px; border-bottom: 1px solid #ddd; }
-    .search-input { width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; margin-bottom: 8px; }
-    .filter-buttons { display: flex; gap: 5px; overflow-x: auto; }
-    .btn-filter {
-      background: #e0e0e0; border: none; padding: 6px 10px; border-radius: 12px;
-      font-size: 12px; font-weight: bold; color: #555; cursor: pointer; white-space: nowrap;
-    }
-    .btn-filter.active { background: #3b5998; color: white; }
-
-    .client-card {
-      background-color: white; padding: 12px 15px; display: flex; align-items: center;
-      border-bottom: 1px solid #e0e0e0;
-    }
-    .icon-status {
-      width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center;
-      justify-content: center; font-weight: bold; color: white; margin-right: 12px; font-size: 13px; flex-shrink: 0;
-    }
-    .status-yellow { background-color: #f39c12; }
-    .status-red { background-color: #e74c3c; }
-    .status-green { background-color: #2ecc71; }
-    .status-grey { background-color: #95a5a6; }
-
-    .client-info { flex: 1; }
-    .client-info .name { font-size: 14px; font-weight: bold; color: #333; text-transform: uppercase; }
-    .client-info .details { font-size: 12px; color: #555; margin-top: 2px; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RutaCash - Sistema de Cobranza</title>
+    <!-- Firebase App y Realtime Database -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    .actions-group { display: flex; gap: 4px; align-items: center; }
-    .btn-action { background: #27ae60; color: white; border: none; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; }
-    .btn-renovar { background: #8e44ad; color: white; border: none; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; }
-    .btn-undo { background: #e67e22; color: white; border: none; padding: 7px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; }
-    .btn-edit { background: #3498db; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
-    .btn-delete { background: #e74c3c; color: white; border: none; padding: 7px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --success: #16a34a;
+            --warning: #ca8a04;
+            --danger: #dc2626;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+        }
 
-    .summary-box-v5 { background: white; margin: 10px; border: 1px solid #ccc; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-    .v5-header { background: linear-gradient(to bottom, #dcdcdc, #b5b5b5); padding: 8px 12px; font-weight: bold; color: #000; font-size: 14px; border-bottom: 1px solid #aaa; display: flex; justify-content: space-between; align-items: center; }
-    .v5-row { display: flex; justify-content: space-between; padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #e5e5e5; }
-    .v5-row:nth-child(even) { background-color: #f7f7f7; }
-    .v5-row.highlight { background-color: #e3f2fd; font-weight: bold; }
-    .v5-row.total-capital { background-color: #27ae60; color: white; font-weight: bold; font-size: 14px; }
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    .btn-unlock-admin {
-      background: #34495e; color: white; border: none; padding: 4px 8px; border-radius: 4px;
-      font-size: 11px; cursor: pointer; font-weight: bold;
-    }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-size: 16px;
+            padding-bottom: 80px;
+        }
 
-    .form-container { background: white; margin: 10px; padding: 15px; border-radius: 6px; }
-    .form-group { margin-bottom: 10px; }
-    .form-group label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; }
-    .form-group input, .form-group select { width: 100%; padding: 9px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-    .form-row { display: flex; gap: 8px; }
-    .form-row .form-group { flex: 1; }
+        header {
+            background-color: var(--primary);
+            color: #fff;
+            padding: 16px;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
 
-    .input-with-btn { display: flex; gap: 6px; }
-    .input-with-btn input { flex: 1; }
-    .btn-mapa {
-      background-color: #0288d1; color: white; border: none; padding: 8px 10px;
-      border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; white-space: nowrap;
-    }
+        .container {
+            padding: 12px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
 
-    .preview-fachada {
-      width: 100%; max-height: 180px; object-fit: cover; border-radius: 6px;
-      margin-top: 6px; display: none; border: 1px solid #ddd;
-    }
+        /* Tarjetas e Interfaces */
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
 
-    .calc-box { background: #eef2f7; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #3b5998; font-size: 13px; }
-    .btn-submit { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 15px; cursor: pointer; }
-    .btn-close-box { background: #e67e22; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 10px; }
-    .btn-close-box:disabled { background: #bdc3c7; cursor: not-allowed; }
-    
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-    .modal-card { background: white; padding: 18px; border-radius: 8px; width: 90%; max-width: 420px; max-height: 92vh; overflow-y: auto; }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: var(--primary);
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 6px;
+        }
 
-    .header-cobro-cliente h3 { margin-bottom: 2px; color: #3b5998; font-size: 16px; text-transform: uppercase; }
-    .info-cuotas-box { background: #f8f9fa; padding: 8px; border-radius: 4px; font-size: 12px; color: #444; margin-bottom: 10px; border: 1px solid #e2e8f0; }
-    .radio-group-cobro { display: flex; gap: 15px; background: #eef2f7; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-weight: bold; font-size: 13px; }
-    .radio-group-cobro label { cursor: pointer; display: flex; align-items: center; gap: 4px; }
+        /* Botones e Inputs Grandes para Móvil */
+        label {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #475569;
+        }
 
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0; height: 55px;
-      background-color: #ffffff; border-top: 1px solid #ccc;
-      display: flex; justify-style: space-around; align-items: center; z-index: 999;
-    }
-    .nav-item {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      font-size: 11px; color: #666; background: none; border: none; cursor: pointer; width: 100%; height: 100%;
-    }
-    .nav-item.active { background-color: #f1c40f; color: #000; font-weight: bold; }
+        input, select, button {
+            width: 100%;
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            outline: none;
+        }
 
-    .banner-bloqueo {
-      background-color: #e74c3c; color: white; padding: 10px; text-align: center;
-      font-size: 13px; font-weight: bold; display: none;
-    }
-  </style>
+        input:focus, select:focus {
+            border-color: var(--primary-light);
+        }
+
+        .btn {
+            border: none;
+            color: white;
+            font-weight: bold;
+            font-size: 1.05rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary { background-color: var(--primary-light); }
+        .btn-success { background-color: var(--success); }
+        .btn-warning { background-color: var(--warning); }
+        .btn-danger { background-color: var(--danger); }
+        .btn-dark { background-color: #334155; }
+
+        /* Navegación Inferior */
+        .nav-tabs {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            border-top: 1px solid #cbd5e1;
+            z-index: 100;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px 4px;
+            border: none;
+            background: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+            border-radius: 0;
+            margin: 0;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-light);
+            border-top: 3px solid var(--primary-light);
+            background: #eff6ff;
+        }
+
+        /* Lista de Clientes */
+        .client-card {
+            border-left: 5px solid var(--primary-light);
+            padding: 12px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .client-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .client-info {
+            font-size: 0.95rem;
+            color: #64748b;
+            margin: 6px 0;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .action-group .btn {
+            padding: 8px;
+            font-size: 0.9rem;
+            margin-bottom: 0;
+        }
+
+        /* Ocultar Secciones */
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* Modal Contraseña Admin */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+    </style>
 </head>
 <body>
 
-  <div id="screenLogin">
-    <div class="login-card">
-      <h2>::RutaCash::</h2>
-      <input type="text" id="loginAlias" placeholder="Usuario / Alias (ej: ruta1)" style="text-transform: lowercase;">
-      <input type="password" id="loginPassword" placeholder="Contraseña">
-      <button class="btn-submit" onclick="iniciarSesion()">Ingresar</button>
-    </div>
-  </div>
+    <header>RutaCash - Gestión de Cobro</header>
 
-  <div class="top-header">
-    <h2 id="titleHeader">::RutaCash:: Clientes</h2>
-    <div>
-      <span class="date-badge" id="fechaHoy"></span>
-      <button onclick="cerrarSesion()" style="background:none; border:none; color:white; font-size:12px; text-decoration:underline; margin-left:5px; cursor:pointer;">Salir</button>
-    </div>
-  </div>
+    <div class="container">
 
-  <div id="bannerCierreBloqueo" class="banner-bloqueo">
-    🔒 Cierre de caja realizado. Cobros bloqueados hasta mañana.
-  </div>
-
-  <div id="tabClientes" class="tab-content active">
-    <div class="filter-section">
-      <input type="text" id="inputBuscar" class="search-input" placeholder="🔍 Buscar Cliente..." onkeyup="filtrarClientes()">
-      <div class="filter-buttons">
-        <button class="btn-filter active" onclick="setFiltro('PENDIENTES', this)">Pendientes</button>
-        <button class="btn-filter" onclick="setFiltro('PAGADOS', this)">Pagados Hoy</button>
-        <button class="btn-filter" onclick="setFiltro('ATRASADOS', this)">Atrasados (5+ días)</button>
-        <button class="btn-filter" onclick="setFiltro('FINALIZADOS', this)">Liquidados / Finalizados</button>
-      </div>
-    </div>
-    <div id="contenedorLista">
-      <div style="text-align:center; padding: 30px; color:#777;">Cargando lista...</div>
-    </div>
-  </div>
-
-  <div id="tabResumen" class="tab-content">
-    <div class="summary-box-v5">
-      <div class="v5-header"><span>Resumen del Día</span></div>
-      <div class="v5-row"><span>Fecha de Ruta</span><b id="resFecha">-</b></div>
-      <div class="v5-row"><span>Clientes Ausentes</span><b id="resClientesAusentes">0</b></div>
-      <div class="v5-row"><span>Número Clientes</span><b id="resNumClientes">0</b></div>
-      <div class="v5-row"><span>Pagos Registrados</span><b id="resCobrosRealizados">0/0</b></div>
-      <div class="v5-row"><span>Caja Inicial</span><b id="resBaseInicial">$0.00</b></div>
-      <div class="v5-row"><span>Recaudo Esperado</span><b id="resRecaudoEsperado">$0.00</b></div>
-      <div class="v5-row"><span>Recaudo del día</span><b id="resRecaudoDia" style="color:#27ae60;">$0.00</b></div>
-      <div class="v5-row"><span>Efectivo / Transferencia</span><b id="resEfectivoTransf">$0.00 / $0.00</b></div>
-      <div class="v5-row"><span>Total Ventas (Nuevos Préstamos)</span><b id="resTotalVentas">$0.00</b></div>
-      <div class="v5-row"><span>Egresos / Gastos</span><b id="resEgresos" style="color:#c0392b;">$0.00</b></div>
-      <div class="v5-row"><span>Otros Ingresos</span><b id="resIngresos" style="color:#27ae60;">$0.00</b></div>
-      <div class="v5-row highlight"><span>Saldo Real en Caja</span><b id="resCajaActual" style="color:#16a085;">$0.00</b></div>
-      
-      <div class="v5-header" style="margin-top:10px; background:linear-gradient(to bottom, #bdc3c7, #95a5a6);">
-        <span>💼 Control Total (Privado Admin)</span>
-        <button id="btnVerCartera" class="btn-unlock-admin" onclick="solicitarVerCartera()">🔒 Ver Datos</button>
-      </div>
-      <div class="v5-row"><span>Total Prestado (Capital Viento)</span><b id="resTotalPrestado">****</b></div>
-      <div class="v5-row"><span>Cartera Total por Recoger (Falta)</span><b id="resCarteraPendiente" style="color:#e67e22;">****</b></div>
-      <div class="v5-row total-capital"><span>CAPITAL TOTAL (Caja + Por Recoger)</span><b id="resCapitalTotalGlobal">****</b></div>
-    </div>
-    
-    <div style="padding: 0 10px; margin-bottom: 15px;">
-      <button class="btn-close-box" id="btnCierreCaja" onclick="realizarCierreCaja()">🔒 Realizar Cierre de Caja</button>
-      <div id="msgCierreInfo" style="font-size: 12px; color: #e74c3c; text-align: center; margin-top: 5px; font-weight: bold;"></div>
-    </div>
-  </div>
-
-  <div id="tabGastos" class="tab-content">
-    <div class="form-container">
-      <h3 style="margin-bottom:12px; color:#3b5998;">💸 Movimientos de Caja</h3>
-      <div class="form-group">
-        <label>Tipo de Movimiento</label>
-        <select id="tipoMovimiento" onchange="actualizarCategorias()">
-          <option value="EGRESO">🔴 Gasto / Egreso (Salida de dinero)</option>
-          <option value="INGRESO">🟢 Ingreso (Entrada de dinero)</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Categoría</label><select id="categoriaMovimiento"></select></div>
-      <div class="form-group"><label>Monto ($)</label><input type="number" id="montoMovimiento" placeholder="0.00"></div>
-      <div class="form-group"><label>Nota / Detalle Adicional (Opcional)</label><input type="text" id="conceptoMovimiento" placeholder="Ej: Gasolina, Almuerzo..."></div>
-      <button class="btn-submit" onclick="guardarMovimiento()">Guardar Movimiento</button>
-    </div>
-
-    <div class="form-container" style="margin-top: 15px;">
-      <h4 style="margin-bottom:10px; color:#555;">📋 Movimientos del Día</h4>
-      <div id="listaMovimientosHoy" style="font-size:13px; color:#666;">Cargando movimientos...</div>
-    </div>
-  </div>
-
-  <div id="tabNuevo" class="tab-content">
-    <div class="form-container">
-      <h3 style="margin-bottom:12px; color:#3b5998;" id="tituloFormNuevo">➕ Registrar Préstamo y Cliente</h3>
-      
-      <input type="hidden" id="renovacionClienteId" value="">
-
-      <div class="form-group"><label>Nombre del Cliente</label><input type="text" id="nombre" placeholder="Nombre completo"></div>
-      <div class="form-group"><label>Teléfono (WhatsApp)</label><input type="tel" id="telefono" placeholder="Ej: 5491122334455"></div>
-      
-      <div class="form-group">
-        <label>🏠 Dirección de Residencia</label>
-        <div class="input-with-btn">
-          <input type="text" id="dirResidencia" placeholder="Escribe la dirección...">
-          <button type="button" class="btn-mapa" onclick="abrirMapa('dirResidencia')">🗺️ Ruta</button>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>🏪 Dirección Local / Negocio</label>
-        <div class="input-with-btn">
-          <input type="text" id="dirLocal" placeholder="Escribe la dirección...">
-          <button type="button" class="btn-mapa" onclick="abrirMapa('dirLocal')">🗺️ Ruta</button>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>📸 Foto de la Fachada (Casa / Local)</label>
-        <input type="file" id="inputFotoFachada" accept="image/*" capture="environment" onchange="previewImagenFachada(event)">
-        <img id="previewFoto" class="preview-fachada" alt="Vista previa fachada">
-      </div>
-
-      <div class="form-group"><label>Monto Prestado / Capital ($)</label><input type="number" id="montoCapital" placeholder="1000" oninput="calcularPrestamo()"></div>
-      <div class="form-group">
-        <label>Interés (%)</label>
-        <select id="interes" onchange="calcularPrestamo()">
-          <option value="10">10%</option><option value="15">15%</option>
-          <option value="20" selected>20%</option><option value="25">25%</option><option value="30">30%</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Modalidad</label>
-        <select id="modalidad" onchange="calcularPrestamo()">
-          <option value="Diario">Diario</option>
-          <option value="Semanal">Semanal</option>
-          <option value="Mensual">Mensual</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Plazo (Cuotas)</label>
-        <select id="plazo" onchange="calcularPrestamo()"></select>
-      </div>
-      
-      <div class="calc-box">
-        <div>Total a Pagar: <b id="calcTotal">$0.00</b></div>
-        <div>Valor por Cuota: <b id="calcCuota">$0.00</b></div>
-      </div>
-      <button class="btn-submit" onclick="guardarCliente()">Guardar Préstamo</button>
-    </div>
-  </div>
-
-  <div class="modal" id="modalCobroAvanzado">
-    <div class="modal-card">
-      <div class="header-cobro-cliente">
-        <h3 id="mcNombre">Cliente</h3>
-        <div class="info-cuotas-box">
-          <div>Cuotas Pagadas: <b id="mcPagadas">0</b>/<b id="mcTotales">0</b> | Atrasadas: <b id="mcAtrasadas" style="color:#e74c3c;">0</b></div>
-          <div>Pendientes: <b id="mcPendientes">0</b> | Modalidad: <b id="mcModalidad" style="color:#3b5998;">Diario</b></div>
-        </div>
-        <div style="display:flex; gap:10px; margin-bottom:10px; font-size:12px;">
-          <a id="mcBtnTel" href="#" style="color:#0288d1; text-decoration:none;">📞 Llamar</a>
-          <button id="mcBtnRutaRes" class="btn-mapa" style="padding:2px 6px;">🏠 Ruta Casa</button>
-          <button id="mcBtnRutaLoc" class="btn-mapa" style="padding:2px 6px;">🏪 Ruta Local</button>
-        </div>
-        <img id="mcFotoFachada" class="preview-fachada" style="margin-bottom:10px;" alt="Fachada">
-      </div>
-
-      <div class="radio-group-cobro">
-        <label><input type="radio" name="modoCobro" value="cuota" checked onchange="cambiarModoCobro('cuota')"> Cuota</label>
-        <label><input type="radio" name="modoCobro" value="abono" onchange="cambiarModoCobro('abono')"> Abono</label>
-        <label><input type="radio" name="modoCobro" value="nopago" onchange="cambiarModoCobro('nopago')"> No Pago</label>
-      </div>
-
-      <input type="hidden" id="mcClienteId">
-      <input type="hidden" id="mcCuotaBase">
-
-      <div class="form-group">
-        <label>Producto / Crédito</label>
-        <input type="text" id="mcProducto" value="CRÉDITO EN EFECTIVO" readonly>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group"><label>Total Venta</label><input type="number" id="mcTotalVenta" readonly></div>
-        <div class="form-group"><label>Saldo Actual</label><input type="number" id="mcSaldoActual" readonly></div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Valor a Pagar (*)</label>
-          <input type="number" id="mcValorPagar" step="0.01" oninput="recalcularModalCobro()" readonly>
-        </div>
-        <div class="form-group">
-          <label>Nº de Cuotas</label>
-          <input type="number" id="mcNumCuotas" value="1" min="1" oninput="recalcularModalCobro()">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Nuevo Saldo</label>
-          <input type="number" id="mcNuevoSaldo" style="color:#c0392b; font-weight:bold;" readonly>
-        </div>
-        <div class="form-group">
-          <label>Total Sanción ($)</label>
-          <input type="number" id="mcSancion" value="0.00" oninput="recalcularModalCobro()">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Forma de Pago</label>
-        <select id="mcFormaPago">
-          <option value="Efectivo">1-> Efectivo</option>
-          <option value="Transferencia">2-> Transferencia / Nequi</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>Observaciones</label>
-        <input type="text" id="mcObservaciones" placeholder="Ej: No estaba, prometió pagar mañana...">
-      </div>
-
-      <button class="btn-submit" onclick="confirmarIngresoCobro()">✔ GUARDAR COBRO</button>
-      <button style="background:#95a5a6; color:white; border:none; padding:8px; border-radius:4px; width:100%; margin-top:5px; cursor:pointer;" onclick="cerrarModalCobro()">Cancelar</button>
-    </div>
-  </div>
-
-  <div class="modal" id="modalEditar">
-    <div class="modal-card">
-      <h3 style="margin-bottom:10px; color:#3b5998;">✏️ Editar Cliente / Saldo</h3>
-      <input type="hidden" id="editId">
-      <div class="form-group"><label>Nombre</label><input type="text" id="editNombre"></div>
-      <div class="form-group"><label>Teléfono</label><input type="tel" id="editTelefono"></div>
-      <div class="form-group">
-        <label>Modalidad</label>
-        <select id="editModalidad">
-          <option value="Diario">Diario</option>
-          <option value="Semanal">Semanal</option>
-          <option value="Mensual">Mensual</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Saldo Pendiente ($)</label><input type="number" id="editSaldo"></div>
-      <div class="form-group"><label>Valor de Cuota ($)</label><input type="number" id="editCuota"></div>
-      <button class="btn-submit" onclick="guardarEdicionCliente()">Guardar Cambios</button>
-      <button style="background:#95a5a6; color:white; border:none; padding:8px; border-radius:4px; width:100%; margin-top:5px; cursor:pointer;" onclick="cerrarModalEditar()">Cancelar</button>
-    </div>
-  </div>
-
-  <div id="modalAdminDelete" class="modal">
-    <div class="modal-card" style="max-width: 320px; text-align: center;">
-      <h3 style="color: #3b5998; margin-bottom: 10px;" id="tituloModalAdmin">Confirmar Acción Admin</h3>
-      <p style="font-size: 14px; color: #555; margin-bottom: 12px;" id="descModalAdmin">Ingresa la contraseña de administrador:</p>
-      <input type="password" id="passAdminInput" placeholder="Contraseña Admin" style="width: 100%; padding: 8px; margin-bottom: 8px; box-sizing: border-box; text-align: center;">
-      <div id="errPassAdmin" style="color: red; font-size: 12px; display: none; margin-bottom: 8px;">Contraseña incorrecta</div>
-      
-      <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 10px;">
-        <button onclick="cerrarModalAdmin()" style="flex: 1; padding: 8px 12px; background: #aaa; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Cancelar</button>
-        <button onclick="confirmarAccionAdmin()" style="flex: 1; padding: 8px 12px; background: #27ae60; color: #fff; border: none; border-radius: 4px; cursor: pointer;">Aceptar</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="bottom-nav">
-    <button class="nav-item active" id="navBtnClientes" onclick="cambiarTab('Clientes', this)">📋 Clientes</button>
-    <button class="nav-item" onclick="cambiarTab('Resumen', this)">📊 Resumen</button>
-    <button class="nav-item" onclick="cambiarTab('Gastos', this)">💸 Movimientos</button>
-    <button class="nav-item" id="navBtnNuevo" onclick="cambiarTab('Nuevo', this)">➕ Nuevo</button>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCI-s09x6xqiJ3LNoralDmX9GuNtTuSK5k",
-      authDomain: "rutacash-44a4a.firebaseapp.com",
-      projectId: "rutacash-44a4a",
-      storageBucket: "rutacash-44a4a.firebasestorage.app",
-      messagingSenderId: "509573274669",
-      appId: "1:509573274669:web:3766c2e5e08962ebe8aca4",
-      measurementId: "G-KKX2RTKF1M"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    function getFechaOperativa(fechaObj = new Date()) {
-      const copia = new Date(fechaObj);
-      if (copia.getHours() < 5) {
-        copia.setDate(copia.getDate() - 1);
-      }
-      return copia.toISOString().split('T')[0];
-    }
-
-    let todayStr = getFechaOperativa();
-    document.getElementById('fechaHoy').innerText = todayStr;
-    document.getElementById('resFecha').innerText = todayStr;
-
-    let localSessionId = localStorage.getItem('rutacash_session_id');
-    let unsubscribeSession = null;
-
-    let todosLosClientes = [];
-    let filtroActual = 'PENDIENTES';
-    let accionAdminPendiente = null;
-    let elementoPendienteAEliminar = null;
-    let carteraRevelada = false;
-    const CLAVE_ADMIN = "admin123";
-
-    let baseInicialCaja = 0;
-    let totalEgresos = 0;
-    let totalIngresos = 0;
-    let fotoFachadaBase64 = "";
-    let cajaCerradaHoy = false;
-
-    let valTotalPrestado = 0;
-    let valCarteraPendiente = 0;
-    let valCapitalTotalGlobal = 0;
-
-    const selectPlazo = document.getElementById('plazo');
-    for (let i = 1; i <= 60; i++) {
-      const opt = document.createElement('option');
-      opt.value = i; opt.innerText = `${i} cuotas`;
-      if (i === 24) opt.selected = true;
-      selectPlazo.appendChild(opt);
-    }
-
-    window.abrirMapa = (idInput) => {
-      const direccion = document.getElementById(idInput).value.trim();
-      if (!direccion) return alert("Por favor ingresa una dirección primero.");
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(direccion)}`, '_blank');
-    };
-
-    window.abrirMapaTexto = (dir) => {
-      if (!dir) return alert("Este cliente no tiene registrada esa dirección.");
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dir)}`, '_blank');
-    };
-
-    window.previewImagenFachada = (event) => {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          fotoFachadaBase64 = e.target.result;
-          const img = document.getElementById('previewFoto');
-          img.src = fotoFachadaBase64;
-          img.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-
-    const categoriasEgreso = [
-      "🏠 Alquiler / Renta (Local, Oficina, Casa)", "⛽ Gasolina / Combustible",
-      "🔧 Reparación / Mantenimiento Moto", "🍟 Alimentación / Almuerzo / Refresco",
-      "💳 Pago Cuota Préstamo / Intereses", "📦 Papelería / Tarjetas / Impresiones",
-      "📱 Recarga Celular / Datos", "🛑 Peajes / Estacionamiento",
-      "💸 Retiro de Capital / Ganancia", "❓ Otro Gasto"
-    ];
-
-    const categoriasIngreso = [
-      "💵 Inversión / Capital Inicial", "🔄 Reposición / Reembolso de Gasto",
-      "📈 Cobro Interés Extra / Comisión", "💰 Préstamo Recibido", "❓ Otro Ingreso"
-    ];
-
-    window.actualizarCategorias = () => {
-      const tipo = document.getElementById('tipoMovimiento').value;
-      const selectCat = document.getElementById('categoriaMovimiento');
-      selectCat.innerHTML = '';
-      const lista = (tipo === 'EGRESO') ? categoriasEgreso : categoriasIngreso;
-      lista.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat; opt.innerText = cat;
-        selectCat.appendChild(opt);
-      });
-    };
-    actualizarCategorias();
-
-    function calcularDiasAtrasoSinDomingos(fechaReferenciaStr) {
-      if (!fechaReferenciaStr) return 0;
-      const fInicio = new Date(fechaReferenciaStr + 'T00:00:00');
-      const fHoy = new Date(todayStr + 'T00:00:00');
-      let diasAtraso = 0;
-      let aux = new Date(fInicio);
-      aux.setDate(aux.getDate() + 1);
-      while (aux <= fHoy) {
-        if (aux.getDay() !== 0) diasAtraso++;
-        aux.setDate(aux.getDate() + 1);
-      }
-      return diasAtraso;
-    }
-
-    window.iniciarSesion = async () => {
-      let alias = document.getElementById('loginAlias').value.trim().toLowerCase();
-      const pass = document.getElementById('loginPassword').value;
-      if (!alias) return alert("Ingresa tu usuario / alias");
-      const email = alias.includes('@') ? alias : `${alias}@rutacash.com`;
-      try {
-        const userCred = await signInWithEmailAndPassword(auth, email, pass);
-        const newSessionId = 'sess_' + Math.random().toString(36).substring(2) + Date.now();
-        localStorage.setItem('rutacash_session_id', newSessionId);
-        localSessionId = newSessionId;
-        await setDoc(doc(db, "sesiones", userCred.user.uid), { activeSessionId: newSessionId });
-      } catch (e) {
-        alert("Error de acceso: Usuario o contraseña incorrectos.");
-      }
-    };
-
-    window.cerrarSesion = () => {
-      localStorage.removeItem('rutacash_session_id');
-      signOut(auth);
-    };
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        document.getElementById('screenLogin').style.display = 'none';
-        if (unsubscribeSession) unsubscribeSession();
-        unsubscribeSession = onSnapshot(doc(db, "sesiones", user.uid), (docSnap) => {
-          if (docSnap.exists() && docSnap.data().activeSessionId !== localStorage.getItem('rutacash_session_id')) {
-            alert("Tu sesión ha sido abierta en otro dispositivo.");
-            cerrarSesion();
-          }
-        });
-        cargarDatos();
-      } else {
-        document.getElementById('screenLogin').style.display = 'flex';
-      }
-    });
-
-    window.cambiarTab = (tabName, btn) => {
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-      document.getElementById(`tab${tabName}`).classList.add('active');
-      btn.classList.add('active');
-      document.getElementById('titleHeader').innerText = `::RutaCash:: ${tabName}`;
-    };
-
-    window.calcularPrestamo = () => {
-      const capital = parseFloat(document.getElementById('montoCapital').value) || 0;
-      const pct = parseFloat(document.getElementById('interes').value) || 0;
-      const plazo = parseInt(document.getElementById('plazo').value) || 1;
-      const total = capital + (capital * (pct / 100));
-      const cuota = total / plazo;
-      document.getElementById('calcTotal').innerText = `$${total.toFixed(2)}`;
-      document.getElementById('calcCuota').innerText = `$${cuota.toFixed(2)}`;
-    };
-
-    window.guardarCliente = async () => {
-      const idRenovacion = document.getElementById('renovacionClienteId').value;
-      const nombre = document.getElementById('nombre').value;
-      const telefono = document.getElementById('telefono').value;
-      const dirResidencia = document.getElementById('dirResidencia').value;
-      const dirLocal = document.getElementById('dirLocal').value;
-      const capital = parseFloat(document.getElementById('montoCapital').value) || 0;
-      const pct = parseFloat(document.getElementById('interes').value) || 0;
-      const modalidad = document.getElementById('modalidad').value;
-      const plazo = parseInt(document.getElementById('plazo').value) || 1;
-
-      if (!nombre || capital <= 0) return alert("Completa los datos correctamente.");
-
-      const montoTotal = capital + (capital * (pct / 100));
-      const cuota = montoTotal / plazo;
-
-      if (idRenovacion) {
-        await updateDoc(doc(db, "prestamos", idRenovacion), {
-          nombre, telefono, dirResidencia, dirLocal, fotoFachada: fotoFachadaBase64,
-          capital, pctInteres: pct, montoTotal, cuota, modalidad, plazo,
-          saldoPendiente: montoTotal, ultimoPagoFecha: "", fechaCreacion: todayStr,
-          totalAbonadoHoy: 0
-        });
-        alert("¡Préstamo renovado exitosamente! El cliente ha pasado a la lista de Pendientes.");
-      } else {
-        await addDoc(collection(db, "prestamos"), {
-          nombre, telefono, dirResidencia, dirLocal, fotoFachada: fotoFachadaBase64,
-          capital, pctInteres: pct, montoTotal, cuota, modalidad, plazo,
-          saldoPendiente: montoTotal, ultimoPagoFecha: "", fechaCreacion: todayStr,
-          totalAbonadoHoy: 0
-        });
-        alert("¡Préstamo registrado exitosamente!");
-      }
-
-      document.getElementById('renovacionClienteId').value = "";
-      document.getElementById('tituloFormNuevo').innerText = "➕ Registrar Préstamo y Cliente";
-      location.reload();
-    };
-
-    window.renovarCliente = (id) => {
-      const c = todosLosClientes.find(x => x.id === id);
-      if (!c) return;
-
-      document.getElementById('renovacionClienteId').value = c.id;
-      document.getElementById('nombre').value = c.nombre;
-      document.getElementById('telefono').value = c.telefono || '';
-      document.getElementById('dirResidencia').value = c.dirResidencia || '';
-      document.getElementById('dirLocal').value = c.dirLocal || '';
-      document.getElementById('modalidad').value = c.modalidad || 'Diario';
-      
-      if (c.fotoFachada) {
-        fotoFachadaBase64 = c.fotoFachada;
-        const img = document.getElementById('previewFoto');
-        img.src = fotoFachadaBase64;
-        img.style.display = 'block';
-      }
-
-      document.getElementById('tituloFormNuevo').innerText = `🔄 Renovar Préstamo para ${c.nombre}`;
-      cambiarTab('Nuevo', document.getElementById('navBtnNuevo'));
-    };
-
-    window.guardarMovimiento = async () => {
-      const tipo = document.getElementById('tipoMovimiento').value;
-      const categoria = document.getElementById('categoriaMovimiento').value;
-      const monto = parseFloat(document.getElementById('montoMovimiento').value) || 0;
-      const nota = document.getElementById('conceptoMovimiento').value.trim();
-
-      if (monto <= 0) return alert("Ingresa un monto válido.");
-
-      await addDoc(collection(db, "movimientos"), {
-        tipo, categoria, monto, nota, fecha: todayStr
-      });
-
-      alert("¡Movimiento guardado con éxito!");
-      document.getElementById('montoMovimiento').value = '';
-      document.getElementById('conceptoMovimiento').value = '';
-      cargarDatos();
-    };
-
-    async function cargarDatos() {
-      todayStr = getFechaOperativa();
-      document.getElementById('fechaHoy').innerText = todayStr;
-      document.getElementById('resFecha').innerText = todayStr;
-
-      const cajaSnap = await getDoc(doc(db, "caja", todayStr));
-      if (cajaSnap.exists()) {
-        baseInicialCaja = cajaSnap.data().baseInicial || 0;
-        cajaCerradaHoy = cajaSnap.data().cerrada || false;
-      } else {
-        cajaCerradaHoy = false;
-        const todasCajas = await getDocs(collection(db, "caja"));
-        let ultimaFecha = "";
-        todasCajas.forEach(docCaja => {
-          if (docCaja.id < todayStr && docCaja.id > ultimaFecha) {
-            ultimaFecha = docCaja.id;
-            baseInicialCaja = docCaja.data().baseInicial || 0;
-          }
-        });
-      }
-
-      document.getElementById('bannerCierreBloqueo').style.display = cajaCerradaHoy ? 'block' : 'none';
-
-      const movSnap = await getDocs(collection(db, "movimientos"));
-      totalEgresos = 0; totalIngresos = 0;
-      const contenedorMovs = document.getElementById('listaMovimientosHoy');
-      contenedorMovs.innerHTML = '';
-      let huboMovs = false;
-
-      movSnap.forEach(d => {
-        const m = d.data();
-        if (m.fecha === todayStr) {
-          huboMovs = true;
-          if (m.tipo === 'EGRESO') totalEgresos += m.monto;
-          if (m.tipo === 'INGRESO') totalIngresos += m.monto;
-          const color = m.tipo === 'EGRESO' ? '#e74c3c' : '#27ae60';
-          const signo = m.tipo === 'EGRESO' ? '-' : '+';
-          const div = document.createElement('div');
-          div.style.cssText = "padding:6px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;";
-          div.innerHTML = `
-            <div><b>${m.categoria}</b> ${m.nota ? `<small>(${m.nota})</small>` : ''}</div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <b style="color:${color};">${signo}$${m.monto.toFixed(2)}</b>
-              <button class="btn-delete" style="padding:3px 6px;" onclick="solicitarBorradoAdmin('${d.id}', 'movimiento')">🗑️</button>
+        <!-- 1. PESTAÑA: RUTA DE COBRO -->
+        <div id="sec-ruta" class="section active">
+            <div class="card">
+                <div class="card-title">Clientes Pendientes de Cobro</div>
+                <div id="lista-pendientes">
+                    <!-- Clientes cargados dinámicamente -->
+                </div>
             </div>
-          `;
-          contenedorMovs.appendChild(div);
-        }
-      });
-      if (!huboMovs) contenedorMovs.innerHTML = '<span style="color:#aaa;">No hay movimientos registrados hoy</span>';
+        </div>
 
-      const querySnapshot = await getDocs(collection(db, "prestamos"));
-      todosLosClientes = [];
-      let recaudoEsperado = 0, recaudoDia = 0, recaudoEfectivo = 0, recaudoTransf = 0;
-      let totalPrestado = 0, carteraPendiente = 0, cobrosHechos = 0, clientesActivos = 0;
-      let nuevosPrestamosHoy = 0, ausentesHoy = 0;
+        <!-- 2. PESTAÑA: REGISTRO DE COBROS Y ESTADOS -->
+        <div id="sec-registros" class="section">
+            <div class="card">
+                <div class="card-title">Gestión de Cobros del Día</div>
+                <select id="filtro-estado" onchange="renderizarRegistros()">
+                    <option value="pago">Clientes que Pagaron</option>
+                    <option value="abono">Clientes que Abonaron</option>
+                    <option value="no_pago">Clientes que NO Pagaron</option>
+                </select>
+                <div id="lista-registrados"></div>
+            </div>
+        </div>
 
-      querySnapshot.forEach((docSnap) => {
-        const c = docSnap.data();
-        c.id = docSnap.id;
-        todosLosClientes.push(c);
+        <!-- 3. PESTAÑA: NUEVO CLIENTE -->
+        <div id="sec-nuevo" class="section">
+            <div class="card">
+                <div class="card-title">Registro Obligatorio de Cliente Nuevo</div>
+                <form id="form-cliente" onsubmit="guardarCliente(event)">
+                    <label>Nombre *</label>
+                    <input type="text" id="cli-nombre" required placeholder="Ej: Juan">
 
-        if (c.fechaCreacion === todayStr) {
-          nuevosPrestamosHoy += c.capital || 0;
-        }
+                    <label>Apellido *</label>
+                    <input type="text" id="cli-apellido" required placeholder="Ej: Pérez">
 
-        if (c.saldoPendiente > 0) {
-          clientesActivos++;
-          recaudoEsperado += c.cuota;
-          carteraPendiente += c.saldoPendiente;
-        }
-        totalPrestado += c.capital || 0;
+                    <label>Documento *</label>
+                    <input type="text" id="cli-documento" required placeholder="Nº Identificación">
 
-        if (c.ultimoPagoFecha === todayStr) {
-          const abonado = c.totalAbonadoHoy || 0;
-          recaudoDia += abonado;
-          if (c.formaPago === 'Transferencia') recaudoTransf += abonado;
-          else recaudoEfectivo += abonado;
-          
-          cobrosHechos++;
-          if (abonado === 0) ausentesHoy++;
-        }
-      });
+                    <label>Teléfono *</label>
+                    <input type="tel" id="cli-telefono" required placeholder="Nº de Celular">
 
-      const efectivoCaja = baseInicialCaja + recaudoDia + totalIngresos - totalEgresos - nuevosPrestamosHoy;
-      const capitalTotalGlobal = efectivoCaja + carteraPendiente;
+                    <label>Dirección *</label>
+                    <input type="text" id="cli-direccion" required placeholder="Calle / Barrio / Casa">
 
-      valTotalPrestado = totalPrestado;
-      valCarteraPendiente = carteraPendiente;
-      valCapitalTotalGlobal = capitalTotalGlobal;
+                    <label>Monto Prestado *</label>
+                    <input type="number" id="cli-monto" required placeholder="0.00">
 
-      document.getElementById('resFecha').innerText = todayStr;
-      document.getElementById('resClientesAusentes').innerText = ausentesHoy;
-      document.getElementById('resNumClientes').innerText = clientesActivos;
-      document.getElementById('resCobrosRealizados').innerText = `${cobrosHechos}/${clientesActivos}`;
-      document.getElementById('resBaseInicial').innerText = `$${baseInicialCaja.toFixed(2)}`;
-      document.getElementById('resRecaudoEsperado').innerText = `$${recaudoEsperado.toFixed(2)}`;
-      document.getElementById('resRecaudoDia').innerText = `$${recaudoDia.toFixed(2)}`;
-      document.getElementById('resEfectivoTransf').innerText = `$${recaudoEfectivo.toFixed(2)} / $${recaudoTransf.toFixed(2)}`;
-      document.getElementById('resTotalVentas').innerText = `$${nuevosPrestamosHoy.toFixed(2)}`;
-      document.getElementById('resEgresos').innerText = `$${totalEgresos.toFixed(2)}`;
-      document.getElementById('resIngresos').innerText = `$${totalIngresos.toFixed(2)}`;
-      document.getElementById('resCajaActual').innerText = `$${efectivoCaja.toFixed(2)}`;
+                    <label>Cuota Diaria *</label>
+                    <input type="number" id="cli-cuota" required placeholder="0.00">
 
-      actualizarVistaCarteraPrivada();
+                    <button type="submit" class="btn btn-success">Guardar y Añadir a Ruta</button>
+                </form>
+            </div>
+        </div>
 
-      const btnCierre = document.getElementById('btnCierreCaja');
-      const msgCierre = document.getElementById('msgCierreInfo');
+        <!-- 4. PESTAÑA: CAJA Y MOVIMIENTOS -->
+        <div id="sec-caja" class="section">
+            <div class="card">
+                <div class="card-title">Movimientos de Caja</div>
+                
+                <label>Tipo de Movimiento</label>
+                <select id="mov-tipo">
+                    <option value="egreso">Egreso (Gasto)</option>
+                    <option value="ingreso">Ingreso (Entrada)</option>
+                </select>
 
-      if (cajaCerradaHoy) {
-        btnCierre.disabled = true;
-        btnCierre.innerText = "🔒 Cierre Ya Realizado Hoy";
-        msgCierre.innerText = "Los cobros están bloqueados hasta la siguiente jornada.";
-      } else if (cobrosHechos < clientesActivos) {
-        btnCierre.disabled = true;
-        btnCierre.innerText = "🔒 Cierre de Caja Bloqueado";
-        msgCierre.innerText = `Faltan ${clientesActivos - cobrosHechos} cliente(s) por gestionar (pago, abono o no pago).`;
-      } else {
-        btnCierre.disabled = false;
-        btnCierre.innerText = "🔒 Realizar Cierre de Caja";
-        msgCierre.innerText = "";
-      }
+                <label>Categoría</label>
+                <select id="mov-categoria">
+                    <!-- Egresos -->
+                    <option value="Gasolina">Gasolina</option>
+                    <option value="Alimentación">Alimentación</option>
+                    <option value="Alquiler">Alquiler</option>
+                    <option value="Mantenimiento">Mantenimiento Vehículo</option>
+                    <option value="Sueldo/Nómina">Sueldo / Nómina</option>
+                    <option value="Gasto Vario">Gasto Vario</option>
+                    <!-- Ingresos -->
+                    <option value="Inversión Capital">Inversión a Capital</option>
+                    <option value="Abono Capital">Abono a Capital</option>
+                    <option value="Entrada Extra">Entrada Extra</option>
+                </select>
 
-      renderizarLista();
-    }
+                <label>Monto</label>
+                <input type="number" id="mov-monto" placeholder="0.00">
 
-    function actualizarVistaCarteraPrivada() {
-      if (carteraRevelada) {
-        document.getElementById('resTotalPrestado').innerText = `$${valTotalPrestado.toFixed(2)}`;
-        document.getElementById('resCarteraPendiente').innerText = `$${valCarteraPendiente.toFixed(2)}`;
-        document.getElementById('resCapitalTotalGlobal').innerText = `$${valCapitalTotalGlobal.toFixed(2)}`;
-        document.getElementById('btnVerCartera').innerText = "🔓 Ocultar";
-      } else {
-        document.getElementById('resTotalPrestado').innerText = "****";
-        document.getElementById('resCarteraPendiente').innerText = "****";
-        document.getElementById('resCapitalTotalGlobal').innerText = "****";
-        document.getElementById('btnVerCartera').innerText = "🔒 Ver Datos";
-      }
-    }
+                <button class="btn btn-primary" onclick="registrarMovimiento()">Registrar Movimiento</button>
+            </div>
+        </div>
 
-    window.solicitarVerCartera = () => {
-      if (carteraRevelada) {
-        carteraRevelada = false;
-        actualizarVistaCarteraPrivada();
-      } else {
-        accionAdminPendiente = 'ver_cartera';
-        document.getElementById('tituloModalAdmin').innerText = "Acceso Privado Administrador";
-        document.getElementById('descModalAdmin').innerText = "Ingresa la clave Admin para revelar el saldo total:";
-        document.getElementById('passAdminInput').value = '';
-        document.getElementById('errPassAdmin').style.display = 'none';
-        document.getElementById('modalAdminDelete').style.display = 'flex';
-      }
-    };
+        <!-- 5. PESTAÑA: RESUMEN Y ADMIN -->
+        <div id="sec-resumen" class="section">
+            <div class="card">
+                <div class="card-title">Resumen del Día</div>
+                <p><strong>Recaudado Hoy:</strong> <span id="res-recaudo">R$ 0.00</span></p>
+                <p><strong>Cobrados:</strong> <span id="res-cobrados">0</span> clientes</p>
+                <p><strong>Clientes Nuevos:</strong> <span id="res-nuevos">0</span></p>
+                <p><strong>Efectividad de Cobro:</strong> <span id="res-porcentaje">0%</span></p>
+            </div>
 
-    function renderizarLista() {
-      const contenedor = document.getElementById('contenedorLista');
-      contenedor.innerHTML = '';
+            <button class="btn btn-dark" onclick="solicitarAccesoAdmin()">Acceso Panel Administrador 🔒</button>
 
-      let lista = todosLosClientes.filter(c => {
-        const busqueda = document.getElementById('inputBuscar').value.toLowerCase();
-        const coincideNombre = c.nombre.toLowerCase().includes(busqueda);
-        const pagadoHoy = c.ultimoPagoFecha === todayStr;
-        const fechaReferencia = c.ultimoPagoFecha || c.fechaCreacion;
-        const diasSinPagar = calcularDiasAtrasoSinDomingos(fechaReferencia);
-        const esAtrasado5Dias = !pagadoHoy && c.saldoPendiente > 0 && diasSinPagar >= 5;
+            <div id="panel-admin" class="card" style="display:none; margin-top:15px; border:2px solid var(--primary);">
+                <div class="card-title">Resumen de Cartera (Admin)</div>
+                <p><strong>Caja Base Inicial:</strong> <span id="adm-base">R$ 0.00</span></p>
+                <p><strong>Falta por Recaudar:</strong> <span id="adm-pendiente">R$ 0.00</span></p>
+                <p><strong>Capital Total Administrado:</strong> <span id="adm-capital">R$ 0.00</span></p>
+            </div>
+        </div>
 
-        if (!coincideNombre) return false;
-        if (filtroActual === 'PENDIENTES') return !pagadoHoy && c.saldoPendiente > 0;
-        if (filtroActual === 'PAGADOS') return pagadoHoy && c.saldoPendiente > 0;
-        if (filtroActual === 'ATRASADOS') return esAtrasado5Dias;
-        if (filtroActual === 'FINALIZADOS') return c.saldoPendiente <= 0;
-        return true;
-      });
+    </div>
 
-      if (lista.length === 0) {
-        contenedor.innerHTML = `<div style="text-align:center; padding: 25px; color:#888;">No hay clientes en esta categoría</div>`;
-        return;
-      }
+    <!-- NAVEGACIÓN INFERIOR -->
+    <nav class="nav-tabs">
+        <button class="tab-btn active" onclick="cambiarTab('sec-ruta', this)">Ruta</button>
+        <button class="tab-btn" onclick="cambiarTab('sec-registros', this)">Registros</button>
+        <button class="tab-btn" onclick="cambiarTab('sec-nuevo', this)">+ Nuevo</button>
+        <button class="tab-btn" onclick="cambiarTab('sec-caja', this)">Caja</button>
+        <button class="tab-btn" onclick="cambiarTab('sec-resumen', this)">Resumen</button>
+    </nav>
 
-      lista.forEach((c, idx) => {
-        const pagadoHoy = c.ultimoPagoFecha === todayStr;
-        const fechaReferencia = c.ultimoPagoFecha || c.fechaCreacion;
-        const diasSinPagar = calcularDiasAtrasoSinDomingos(fechaReferencia);
+    <!-- MODAL CLAVE ADMIN -->
+    <div id="modal-pass" class="modal">
+        <div class="modal-content">
+            <h3>Contraseña de Administrador</h3>
+            <br>
+            <input type="password" id="pass-input" placeholder="Ingrese clave">
+            <button class="btn btn-primary" onclick="validarPassAdmin()">Ingresar</button>
+            <button class="btn btn-danger" onclick="cerrarModal()">Cancelar</button>
+        </div>
+    </div>
 
-        let statusClass = 'status-yellow';
-        let statusIcon = '👤';
-
-        if (c.saldoPendiente <= 0) { statusClass = 'status-grey'; statusIcon = '✓'; }
-        else if (pagadoHoy) { statusClass = 'status-green'; statusIcon = '✓'; }
-        else if (diasSinPagar >= 5) { statusClass = 'status-red'; }
-
-        const abonadoHoy = c.totalAbonadoHoy || 0;
-        let detalleMonto = `Cuota: <b>$${c.cuota.toFixed(2)}</b>`;
-
-        if (pagadoHoy) {
-          if (abonadoHoy === 0) {
-            detalleMonto = `<b style="color:#c0392b;">NO PAGÓ ($0.00)</b>`;
-          } else {
-            detalleMonto = `Abonó hoy: <b style="color:#27ae60;">$${abonadoHoy.toFixed(2)}</b>`;
-          }
+    <script>
+        // CONFIGURACIÓN DE FIREBASE (Reemplaza con tus credenciales si aplica)
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            authDomain: "TU_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://TU_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "TU_PROJECT_ID",
+            storageBucket: "TU_PROJECT_ID.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+        
+        // Inicializar Firebase si no está configurado previamente
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
 
-        const div = document.createElement('div');
-        div.className = 'client-card';
-        div.innerHTML = `
-          <div class="icon-status ${statusClass}">${statusIcon}</div>
-          <div class="client-info">
-            <div class="name">${idx + 1}. ${c.nombre} <small style="font-weight:normal; color:#777;">(${c.modalidad || 'Diario'})</small></div>
-            <div class="details">${detalleMonto} | Saldo: <b>$${c.saldoPendiente.toFixed(2)}</b></div>
-          </div>
-          <div class="actions-group">
-            ${c.saldoPendiente <= 0 ? `<button class="btn-renovar" onclick="renovarCliente('${c.id}')">🔄 Renovar</button>` : ''}
-            ${!pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-action" ${cajaCerradaHoy ? 'disabled style="background:#bdc3c7;"' : ''} onclick="abrirModalCobro('${c.id}')">Ingresar Pago</button>` : ''}
-            ${pagadoHoy && c.saldoPendiente > 0 ? `<button class="btn-undo" ${cajaCerradaHoy ? 'disabled style="background:#bdc3c7;"' : ''} title="Quitar Pago" onclick="quitarPagoInmediato('${c.id}')">❌ Quitar</button>` : ''}
-            <button class="btn-edit" onclick="abrirModalEditar('${c.id}')">✏️</button>
-            <button class="btn-delete" onclick="solicitarBorradoAdmin('${c.id}', 'cliente')">🗑️</button>
-          </div>
-        `;
-        contenedor.appendChild(div);
-      });
-    }
+        // Datos en memoria local (Sincronizables con Firebase)
+        let clientes = JSON.parse(localStorage.getItem('rc_clientes')) || [];
+        let cobrosDia = JSON.parse(localStorage.getItem('rc_cobros')) || [];
+        const CLAVE_ADMIN = "1234"; // Puedes modificar esta clave
 
-    window.setFiltro = (filtro, btn) => {
-      filtroActual = filtro;
-      document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      renderizarLista();
-    };
-
-    window.filtrarClientes = () => renderizarLista();
-
-    window.abrirModalCobro = (id) => {
-      if (cajaCerradaHoy) return alert("La caja ya ha sido cerrada hoy. Los nuevos cobros están bloqueados hasta la siguiente jornada.");
-
-      const c = todosLosClientes.find(x => x.id === id);
-      if (!c) return;
-
-      document.getElementById('mcClienteId').value = c.id;
-      document.getElementById('mcNombre').innerText = c.nombre;
-      document.getElementById('mcModalidad').innerText = c.modalidad || 'Diario';
-      
-      const cuotasPagadas = Math.floor((c.montoTotal - c.saldoPendiente) / c.cuota);
-      const cuotasTotales = c.plazo || 1;
-      const cuotasPendientes = Math.ceil(c.saldoPendiente / c.cuota);
-      const diasAtraso = calcularDiasAtrasoSinDomingos(c.ultimoPagoFecha || c.fechaCreacion);
-
-      document.getElementById('mcPagadas').innerText = cuotasPagadas;
-      document.getElementById('mcTotales').innerText = cuotasTotales;
-      document.getElementById('mcAtrasadas').innerText = diasAtraso;
-      document.getElementById('mcPendientes').innerText = cuotasPendientes;
-
-      document.getElementById('mcBtnTel').href = `tel:${c.telefono || ''}`;
-      document.getElementById('mcBtnRutaRes').onclick = () => abrirMapaTexto(c.dirResidencia);
-      document.getElementById('mcBtnRutaLoc').onclick = () => abrirMapaTexto(c.dirLocal);
-
-      const imgFachada = document.getElementById('mcFotoFachada');
-      if (c.fotoFachada) {
-        imgFachada.src = c.fotoFachada;
-        imgFachada.style.display = 'block';
-      } else {
-        imgFachada.style.display = 'none';
-      }
-
-      document.getElementById('mcTotalVenta').value = c.montoTotal.toFixed(2);
-      document.getElementById('mcSaldoActual').value = c.saldoPendiente.toFixed(2);
-      document.getElementById('mcCuotaBase').value = c.cuota;
-
-      document.querySelector('input[name="modoCobro"][value="cuota"]').checked = true;
-      cambiarModoCobro('cuota');
-
-      document.getElementById('modalCobroAvanzado').style.display = 'flex';
-    };
-
-    window.cerrarModalCobro = () => {
-      document.getElementById('modalCobroAvanzado').style.display = 'none';
-    };
-
-    window.cambiarModoCobro = (modo) => {
-      const inputValor = document.getElementById('mcValorPagar');
-      const inputCuotas = document.getElementById('mcNumCuotas');
-
-      if (modo === 'cuota') {
-        inputCuotas.disabled = false;
-        inputCuotas.value = 1;
-        inputValor.readOnly = true;
-      } else if (modo === 'abono') {
-        inputCuotas.disabled = true;
-        inputCuotas.value = 0;
-        inputValor.readOnly = false;
-      } else if (modo === 'nopago') {
-        inputCuotas.disabled = true;
-        inputCuotas.value = 0;
-        inputValor.value = (0).toFixed(2);
-        inputValor.readOnly = true;
-      }
-      recalcularModalCobro();
-    };
-
-    window.recalcularModalCobro = () => {
-      const modo = document.querySelector('input[name="modoCobro"]:checked').value;
-      const saldoActual = parseFloat(document.getElementById('mcSaldoActual').value) || 0;
-      const cuotaBase = parseFloat(document.getElementById('mcCuotaBase').value) || 0;
-      const sancion = parseFloat(document.getElementById('mcSancion').value) || 0;
-
-      let valorPagar = 0;
-
-      if (modo === 'cuota') {
-        const cantCuotas = parseInt(document.getElementById('mcNumCuotas').value) || 0;
-        valorPagar = cantCuotas * cuotaBase;
-        document.getElementById('mcValorPagar').value = valorPagar.toFixed(2);
-      } else if (modo === 'abono') {
-        valorPagar = parseFloat(document.getElementById('mcValorPagar').value) || 0;
-      } else if (modo === 'nopago') {
-        valorPagar = 0;
-      }
-
-      const nuevoSaldo = Math.max(0, saldoActual - valorPagar + sancion);
-      document.getElementById('mcNuevoSaldo').value = nuevoSaldo.toFixed(2);
-    };
-
-    window.confirmarIngresoCobro = async () => {
-      const id = document.getElementById('mcClienteId').value;
-      const nuevoSaldo = parseFloat(document.getElementById('mcNuevoSaldo').value) || 0;
-      const valorAbonado = parseFloat(document.getElementById('mcValorPagar').value) || 0;
-      const observaciones = document.getElementById('mcObservaciones').value;
-      const formaPago = document.getElementById('mcFormaPago').value;
-
-      await updateDoc(doc(db, "prestamos", id), {
-        saldoPendiente: nuevoSaldo,
-        ultimoPagoFecha: todayStr,
-        totalAbonadoHoy: valorAbonado,
-        formaPago: formaPago,
-        ultimaObservacion: observaciones
-      });
-
-      cerrarModalCobro();
-      alert("¡Registro de cobro guardado correctamente!");
-      cargarDatos();
-    };
-
-    window.quitarPagoInmediato = async (id) => {
-      if (cajaCerradaHoy) return alert("La caja ya fue cerrada. No es posible modificar cobros hoy.");
-
-      const c = todosLosClientes.find(x => x.id === id);
-      if (!c) return;
-
-      if (confirm(`¿Deseas quitar el pago ingresado hoy a ${c.nombre}?`)) {
-        const montoAbonado = c.totalAbonadoHoy || 0;
-        const saldoRestaurado = c.saldoPendiente + montoAbonado;
-
-        await updateDoc(doc(db, "prestamos", id), {
-          saldoPendiente: saldoRestaurado,
-          ultimoPagoFecha: "",
-          totalAbonadoHoy: 0,
-          ultimaObservacion: "Pago quitado"
-        });
-
-        alert(`¡Pago retirado correctamente! Se devolvieron $${montoAbonado.toFixed(2)} al saldo.`);
-        cargarDatos();
-      }
-    };
-
-    window.realizarCierreCaja = async () => {
-      const cajaTexto = document.getElementById('resCajaActual').innerText.replace('$', '');
-      const efectivo = parseFloat(cajaTexto) || 0;
-
-      if (!confirm(`¿Confirmas cerrar caja con $${efectivo.toFixed(2)}?`)) return;
-
-      const ahora = new Date();
-      const horaActual = ahora.getHours();
-
-      let fechaCierre = todayStr;
-      let fechaSiguiente = "";
-
-      if (horaActual < 5) {
-        const ayer = new Date(ahora);
-        ayer.setDate(ayer.getDate() - 1);
-        fechaCierre = ayer.toISOString().split('T')[0];
-        fechaSiguiente = ahora.toISOString().split('T')[0];
-      } else {
-        const manana = new Date(ahora);
-        manana.setDate(manana.getDate() + 1);
-        fechaSiguiente = manana.toISOString().split('T')[0];
-      }
-
-      await setDoc(doc(db, "caja", fechaCierre), { baseInicial: baseInicialCaja, cerrada: true }, { merge: true });
-      await setDoc(doc(db, "caja", fechaSiguiente), { baseInicial: efectivo, cerrada: false }, { merge: true });
-
-      if (horaActual < 5) {
-        const promesasReset = todosLosClientes.map(cliente => {
-          return updateDoc(doc(db, "prestamos", cliente.id), {
-            ultimoPagoFecha: "",
-            totalAbonadoHoy: 0
-          });
-        });
-        await Promise.all(promesasReset);
-        alert(`¡Cierre de la jornada anterior completado!\n\n1. Base de $${efectivo.toFixed(2)} asignada a HOY.\n2. La app ya está totalmente lista para operar el día de hoy.`);
-      } else {
-        alert(`¡Cierre de caja completado!\n\n1. Base de $${efectivo.toFixed(2)} guardada para mañana.\n2. Los cobros quedan bloqueados hasta cambiar de día.`);
-      }
-
-      cargarDatos();
-    };
-
-    window.solicitarBorradoAdmin = (id, tipo) => {
-      accionAdminPendiente = 'borrar';
-      elementoPendienteAEliminar = { id, tipo };
-      document.getElementById('tituloModalAdmin').innerText = "Confirmar Eliminación";
-      document.getElementById('descModalAdmin').innerText = "Ingresa la contraseña de administrador:";
-      document.getElementById('passAdminInput').value = '';
-      document.getElementById('errPassAdmin').style.display = 'none';
-      document.getElementById('modalAdminDelete').style.display = 'flex';
-    };
-
-    window.cerrarModalAdmin = () => {
-      document.getElementById('modalAdminDelete').style.display = 'none';
-      elementoPendienteAEliminar = null;
-      accionAdminPendiente = null;
-    };
-
-    window.confirmarAccionAdmin = async () => {
-      const claveIngresada = document.getElementById('passAdminInput').value;
-      
-      if (claveIngresada === CLAVE_ADMIN) {
-        if (accionAdminPendiente === 'borrar' && elementoPendienteAEliminar) {
-          const { id, tipo } = elementoPendienteAEliminar;
-          if (tipo === 'cliente') {
-            await deleteDoc(doc(db, "prestamos", id));
-          } else if (tipo === 'movimiento') {
-            await deleteDoc(doc(db, "movimientos", id));
-          }
-          cargarDatos();
-        } else if (accionAdminPendiente === 'ver_cartera') {
-          carteraRevelada = true;
-          actualizarVistaCarteraPrivada();
+        // Cambiar pestañas
+        function cambiarTab(idSec, btn) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(idSec).classList.add('active');
+            btn.classList.add('active');
+            
+            if(idSec === 'sec-ruta') renderizarRuta();
+            if(idSec === 'sec-registros') renderizarRegistros();
+            if(idSec === 'sec-resumen') renderizarResumen();
         }
-        cerrarModalAdmin();
-      } else {
-        document.getElementById('errPassAdmin').style.display = 'block';
-      }
-    };
 
-    window.abrirModalEditar = (id) => {
-      const cliente = todosLosClientes.find(c => c.id === id);
-      if (!cliente) return;
+        // Guardar Cliente Nuevo
+        function guardarCliente(e) {
+            e.preventDefault();
+            const nuevo = {
+                id: Date.now(),
+                nombre: document.getElementById('cli-nombre').value,
+                apellido: document.getElementById('cli-apellido').value,
+                documento: document.getElementById('cli-documento').value,
+                telefono: document.getElementById('cli-telefono').value,
+                direccion: document.getElementById('cli-direccion').value,
+                monto: parseFloat(document.getElementById('cli-monto').value),
+                cuota: parseFloat(document.getElementById('cli-cuota').value),
+                esNuevo: true
+            };
 
-      document.getElementById('editId').value = cliente.id;
-      document.getElementById('editNombre').value = cliente.nombre;
-      document.getElementById('editTelefono').value = cliente.telefono || '';
-      document.getElementById('editModalidad').value = cliente.modalidad || 'Diario';
-      document.getElementById('editSaldo').value = cliente.saldoPendiente;
-      document.getElementById('editCuota').value = cliente.cuota;
+            clientes.push(nuevo);
+            localStorage.setItem('rc_clientes', JSON.stringify(clientes));
+            document.getElementById('form-cliente').reset();
+            alert("Cliente registrado exitosamente.");
+            cambiarTab('sec-ruta', document.querySelectorAll('.tab-btn')[0]);
+        }
 
-      document.getElementById('modalEditar').style.display = 'flex';
-    };
+        // Renderizar Lista de Clientes Pendientes
+        function renderizarRuta() {
+            const cont = document.getElementById('lista-pendientes');
+            cont.innerHTML = '';
 
-    window.cerrarModalEditar = () => {
-      document.getElementById('modalEditar').style.display = 'none';
-    };
+            const pendientes = clientes.filter(c => !cobrosDia.some(cob => cob.clienteId === c.id));
 
-    window.guardarEdicionCliente = async () => {
-      const id = document.getElementById('editId').value;
-      const nombre = document.getElementById('editNombre').value;
-      const telefono = document.getElementById('editTelefono').value;
-      const modalidad = document.getElementById('editModalidad').value;
-      const saldoPendiente = parseFloat(document.getElementById('editSaldo').value) || 0;
-      const cuota = parseFloat(document.getElementById('editCuota').value) || 0;
+            if(pendientes.length === 0) {
+                cont.innerHTML = '<p style="text-align:center; padding:20px; color:#64748b;">No hay clientes pendientes por cobrar hoy.</p>';
+                return;
+            }
 
-      await updateDoc(doc(db, "prestamos", id), {
-        nombre, telefono, modalidad, saldoPendiente, cuota
-      });
+            pendientes.forEach(c => {
+                cont.innerHTML += `
+                    <div class="client-card">
+                        <div class="client-header">
+                            <span>${c.nombre} ${c.apellido}</span>
+                            <span style="color:var(--primary)">R$ ${c.cuota.toFixed(2)}</span>
+                        </div>
+                        <div class="client-info">
+                            📍 ${c.direccion} | 📞 ${c.telefono}
+                        </div>
+                        <div class="action-group">
+                            <button class="btn btn-success" onclick="registrarCobro(${c.id}, 'pago', ${c.cuota})">Pagó</button>
+                            <button class="btn btn-warning" onclick="promptAbono(${c.id})">Abonó</button>
+                            <button class="btn btn-danger" onclick="registrarCobro(${c.id}, 'no_pago', 0)">No Pagó</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
 
-      cerrarModalEditar();
-      alert("¡Cliente actualizado!");
-      cargarDatos();
-    };
-  </script>
+        // Registrar Estado de Pago
+        function registrarCobro(id, estado, valor) {
+            cobrosDia.push({
+                id: Date.now(),
+                clienteId: id,
+                estado: estado,
+                monto: valor,
+                hora: new Date().toLocaleTimeString()
+            });
+            localStorage.setItem('rc_cobros', JSON.stringify(cobrosDia));
+            renderizarRuta();
+        }
+
+        function promptAbono(id) {
+            const val = prompt("Ingrese el monto abonado:");
+            if(val && !isNaN(val) && parseFloat(val) > 0) {
+                registrarCobro(id, 'abono', parseFloat(val));
+            }
+        }
+
+        // Renderizar Lista de Clientes ya Procesados (Pagos, Abonos, No Pagó)
+        function renderizarRegistros() {
+            const filtro = document.getElementById('filtro-estado').value;
+            const cont = document.getElementById('lista-registrados');
+            cont.innerHTML = '';
+
+            const filtrados = cobrosDia.filter(c => c.estado === filtro);
+
+            filtrados.forEach(reg => {
+                const cli = clientes.find(c => c.id === reg.clienteId);
+                if(!cli) return;
+
+                cont.innerHTML += `
+                    <div class="client-card">
+                        <div class="client-header">
+                            <span>${cli.nombre} ${cli.apellido}</span>
+                            <span>R$ ${reg.monto.toFixed(2)}</span>
+                        </div>
+                        <div class="client-info">Registrado a las: ${reg.hora}</div>
+                        <button class="btn btn-danger" style="margin-top:5px; padding:4px;" onclick="eliminarRegistro(${reg.id})">Eliminar Registro (Equivocación)</button>
+                    </div>
+                `;
+            });
+        }
+
+        function eliminarRegistro(regId) {
+            if(confirm("¿Desea eliminar este registro y regresar al cliente a la lista de cobros pendientes?")) {
+                cobrosDia = cobrosDia.filter(c => c.id !== regId);
+                localStorage.setItem('rc_cobros', JSON.stringify(cobrosDia));
+                renderizarRegistros();
+            }
+        }
+
+        // Resumen del Día
+        function renderizarResumen() {
+            const totalRecaudado = cobrosDia.reduce((sum, c) => sum + c.monto, 0);
+            const totalCobrados = cobrosDia.filter(c => c.estado === 'pago' || c.estado === 'abono').length;
+            const nuevos = clientes.filter(c => c.esNuevo).length;
+            const porc = clientes.length > 0 ? ((totalCobrados / clientes.length) * 100).toFixed(1) : 0;
+
+            document.getElementById('res-recaudo').innerText = `R$ ${totalRecaudado.toFixed(2)}`;
+            document.getElementById('res-cobrados').innerText = totalCobrados;
+            document.getElementById('res-nuevos').innerText = nuevos;
+            document.getElementById('res-porcentaje').innerText = `${porc}%`;
+        }
+
+        // Admin Modal
+        function solicitarAccesoAdmin() {
+            document.getElementById('modal-pass').style.display = 'flex';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modal-pass').style.display = 'none';
+        }
+
+        function validarPassAdmin() {
+            const input = document.getElementById('pass-input').value;
+            if(input === CLAVE_ADMIN) {
+                document.getElementById('panel-admin').style.display = 'block';
+                cerrarModal();
+            } else {
+                alert("Contraseña incorrecta.");
+            }
+        }
+
+        // Carga inicial
+        renderizarRuta();
+    </script>
 </body>
 </html>
