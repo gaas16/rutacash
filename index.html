@@ -54,7 +54,6 @@
             margin: 0 auto;
         }
 
-        /* Tarjetas e Interfaces */
         .card {
             background: var(--card-bg);
             border-radius: 12px;
@@ -72,10 +71,15 @@
             padding-bottom: 6px;
         }
 
-        /* Botones e Inputs Grandes para Móvil */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
         label {
             display: block;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 600;
             margin-bottom: 4px;
             color: #475569;
@@ -83,16 +87,29 @@
 
         input, select, button {
             width: 100%;
-            padding: 12px 14px;
-            margin-bottom: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
             border: 1.5px solid #cbd5e1;
             border-radius: 8px;
-            font-size: 1.05rem;
+            font-size: 1rem;
             outline: none;
         }
 
         input:focus, select:focus {
             border-color: var(--primary-light);
+        }
+
+        .calc-box {
+            background: #eff6ff;
+            border: 1.5px dashed var(--primary-light);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .calc-box p {
+            font-size: 0.95rem;
+            margin-bottom: 4px;
         }
 
         .btn {
@@ -102,7 +119,7 @@
             font-size: 1.05rem;
             cursor: pointer;
             border-radius: 8px;
-            transition: background 0.2s;
+            padding: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -115,7 +132,6 @@
         .btn-danger { background-color: var(--danger); }
         .btn-dark { background-color: #334155; }
 
-        /* Navegación Inferior */
         .nav-tabs {
             position: fixed;
             bottom: 0;
@@ -129,7 +145,7 @@
 
         .tab-btn {
             flex: 1;
-            padding: 10px 4px;
+            padding: 12px 4px;
             border: none;
             background: none;
             font-size: 0.85rem;
@@ -145,7 +161,6 @@
             background: #eff6ff;
         }
 
-        /* Lista de Clientes */
         .client-card {
             border-left: 5px solid var(--primary-light);
             padding: 12px;
@@ -163,7 +178,7 @@
         }
 
         .client-info {
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             color: #64748b;
             margin: 6px 0;
         }
@@ -176,15 +191,12 @@
 
         .action-group .btn {
             padding: 8px;
-            font-size: 0.9rem;
-            margin-bottom: 0;
+            font-size: 0.85rem;
         }
 
-        /* Ocultar Secciones */
         .section { display: none; }
         .section.active { display: block; }
 
-        /* Modal Contraseña Admin */
         .modal {
             display: none;
             position: fixed;
@@ -200,7 +212,9 @@
             padding: 20px;
             border-radius: 12px;
             width: 90%;
-            max-width: 400px;
+            max-width: 450px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -214,13 +228,11 @@
         <div id="sec-ruta" class="section active">
             <div class="card">
                 <div class="card-title">Clientes Pendientes de Cobro</div>
-                <div id="lista-pendientes">
-                    <!-- Clientes cargados dinámicamente -->
-                </div>
+                <div id="lista-pendientes"></div>
             </div>
         </div>
 
-        <!-- 2. PESTAÑA: REGISTRO DE COBROS Y ESTADOS -->
+        <!-- 2. PESTAÑA: REGISTROS -->
         <div id="sec-registros" class="section">
             <div class="card">
                 <div class="card-title">Gestión de Cobros del Día</div>
@@ -233,31 +245,71 @@
             </div>
         </div>
 
-        <!-- 3. PESTAÑA: NUEVO CLIENTE -->
+        <!-- 3. PESTAÑA: NUEVO CLIENTE / RENOVACIÓN -->
         <div id="sec-nuevo" class="section">
             <div class="card">
-                <div class="card-title">Registro Obligatorio de Cliente Nuevo</div>
+                <div class="card-title" id="form-titulo">Registro de Cliente Nuevo</div>
                 <form id="form-cliente" onsubmit="guardarCliente(event)">
+                    
                     <label>Nombre *</label>
                     <input type="text" id="cli-nombre" required placeholder="Ej: Juan">
 
                     <label>Apellido *</label>
                     <input type="text" id="cli-apellido" required placeholder="Ej: Pérez">
 
-                    <label>Documento *</label>
-                    <input type="text" id="cli-documento" required placeholder="Nº Identificación">
-
-                    <label>Teléfono *</label>
-                    <input type="tel" id="cli-telefono" required placeholder="Nº de Celular">
+                    <div class="grid-2">
+                        <div>
+                            <label>Documento *</label>
+                            <input type="text" id="cli-documento" required placeholder="Nº ID">
+                        </div>
+                        <div>
+                            <label>Teléfono *</label>
+                            <input type="tel" id="cli-telefono" required placeholder="Celular">
+                        </div>
+                    </div>
 
                     <label>Dirección *</label>
-                    <input type="text" id="cli-direccion" required placeholder="Calle / Barrio / Casa">
+                    <input type="text" id="cli-direccion" required placeholder="Dirección completa">
 
-                    <label>Monto Prestado *</label>
-                    <input type="number" id="cli-monto" required placeholder="0.00">
+                    <div class="grid-2">
+                        <div>
+                            <label>Frecuencia de Pago *</label>
+                            <select id="cli-frecuencia" required>
+                                <option value="Diario">Diario</option>
+                                <option value="Semanal">Semanal</option>
+                                <option value="Mensual">Mensual</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Interés (%) *</label>
+                            <select id="cli-interes" onchange="calcularValores()" required>
+                                <option value="10">10%</option>
+                                <option value="15">15%</option>
+                                <option value="20" selected>20%</option>
+                                <option value="25">25%</option>
+                                <option value="30">30%</option>
+                            </select>
+                        </div>
+                    </div>
 
-                    <label>Cuota Diaria *</label>
-                    <input type="number" id="cli-cuota" required placeholder="0.00">
+                    <div class="grid-2">
+                        <div>
+                            <label>Monto Prestado *</label>
+                            <input type="number" id="cli-monto" oninput="calcularValores()" required placeholder="0.00">
+                        </div>
+                        <div>
+                            <label>Nº de Cuotas (1 a 60) *</label>
+                            <select id="cli-cuotas" onchange="calcularValores()" required>
+                                <!-- Generado por JS del 1 al 60 -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- CAJA DE CÁLCULO AUTOMÁTICO -->
+                    <div class="calc-box">
+                        <p><strong>Total con Interés:</strong> R$ <span id="calc-total">0.00</span></p>
+                        <p><strong>Valor por Cuota:</strong> R$ <span id="calc-valor-cuota">0.00</span></p>
+                    </div>
 
                     <button type="submit" class="btn btn-success">Guardar y Añadir a Ruta</button>
                 </form>
@@ -268,27 +320,14 @@
         <div id="sec-caja" class="section">
             <div class="card">
                 <div class="card-title">Movimientos de Caja</div>
-                
                 <label>Tipo de Movimiento</label>
-                <select id="mov-tipo">
+                <select id="mov-tipo" onchange="actualizarCategorias()">
                     <option value="egreso">Egreso (Gasto)</option>
                     <option value="ingreso">Ingreso (Entrada)</option>
                 </select>
 
                 <label>Categoría</label>
-                <select id="mov-categoria">
-                    <!-- Egresos -->
-                    <option value="Gasolina">Gasolina</option>
-                    <option value="Alimentación">Alimentación</option>
-                    <option value="Alquiler">Alquiler</option>
-                    <option value="Mantenimiento">Mantenimiento Vehículo</option>
-                    <option value="Sueldo/Nómina">Sueldo / Nómina</option>
-                    <option value="Gasto Vario">Gasto Vario</option>
-                    <!-- Ingresos -->
-                    <option value="Inversión Capital">Inversión a Capital</option>
-                    <option value="Abono Capital">Abono a Capital</option>
-                    <option value="Entrada Extra">Entrada Extra</option>
-                </select>
+                <select id="mov-categoria"></select>
 
                 <label>Monto</label>
                 <input type="number" id="mov-monto" placeholder="0.00">
@@ -311,7 +350,6 @@
 
             <div id="panel-admin" class="card" style="display:none; margin-top:15px; border:2px solid var(--primary);">
                 <div class="card-title">Resumen de Cartera (Admin)</div>
-                <p><strong>Caja Base Inicial:</strong> <span id="adm-base">R$ 0.00</span></p>
                 <p><strong>Falta por Recaudar:</strong> <span id="adm-pendiente">R$ 0.00</span></p>
                 <p><strong>Capital Total Administrado:</strong> <span id="adm-capital">R$ 0.00</span></p>
             </div>
@@ -328,6 +366,49 @@
         <button class="tab-btn" onclick="cambiarTab('sec-resumen', this)">Resumen</button>
     </nav>
 
+    <!-- MODAL RENOVACIÓN -->
+    <div id="modal-renovar" class="modal">
+        <div class="modal-content">
+            <h3>Renovar Crédito a Cliente</h3>
+            <p id="renov-cliente-nombre" style="font-weight:bold; margin: 10px 0; color:var(--primary);"></p>
+            
+            <label>Frecuencia de Pago *</label>
+            <select id="renov-frecuencia">
+                <option value="Diario">Diario</option>
+                <option value="Semanal">Semanal</option>
+                <option value="Mensual">Mensual</option>
+            </select>
+
+            <div class="grid-2">
+                <div>
+                    <label>Interés (%) *</label>
+                    <select id="renov-interes" onchange="calcularValoresRenovacion()">
+                        <option value="10">10%</option>
+                        <option value="15">15%</option>
+                        <option value="20" selected>20%</option>
+                        <option value="25">25%</option>
+                        <option value="30">30%</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Nº Cuotas *</label>
+                    <select id="renov-cuotas" onchange="calcularValoresRenovacion()"></select>
+                </div>
+            </div>
+
+            <label>Monto Prestado *</label>
+            <input type="number" id="renov-monto" oninput="calcularValoresRenovacion()" placeholder="0.00">
+
+            <div class="calc-box">
+                <p><strong>Total a Pagar:</strong> R$ <span id="renov-calc-total">0.00</span></p>
+                <p><strong>Cuota:</strong> R$ <span id="renov-calc-cuota">0.00</span></p>
+            </div>
+
+            <button class="btn btn-success" onclick="confirmarRenovacion()">Confirmar Renovación</button>
+            <button class="btn btn-danger" onclick="cerrarModalRenovar()" style="margin-top:8px;">Cancelar</button>
+        </div>
+    </div>
+
     <!-- MODAL CLAVE ADMIN -->
     <div id="modal-pass" class="modal">
         <div class="modal-content">
@@ -335,33 +416,55 @@
             <br>
             <input type="password" id="pass-input" placeholder="Ingrese clave">
             <button class="btn btn-primary" onclick="validarPassAdmin()">Ingresar</button>
-            <button class="btn btn-danger" onclick="cerrarModal()">Cancelar</button>
+            <button class="btn btn-danger" onclick="cerrarModalPass()" style="margin-top:8px;">Cancelar</button>
         </div>
     </div>
 
     <script>
-        // CONFIGURACIÓN DE FIREBASE (Reemplaza con tus credenciales si aplica)
-        const firebaseConfig = {
-            apiKey: "TU_API_KEY",
-            authDomain: "TU_PROJECT_ID.firebaseapp.com",
-            databaseURL: "https://TU_PROJECT_ID-default-rtdb.firebaseio.com",
-            projectId: "TU_PROJECT_ID",
-            storageBucket: "TU_PROJECT_ID.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef"
-        };
-        
-        // Inicializar Firebase si no está configurado previamente
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-
-        // Datos en memoria local (Sincronizables con Firebase)
         let clientes = JSON.parse(localStorage.getItem('rc_clientes')) || [];
         let cobrosDia = JSON.parse(localStorage.getItem('rc_cobros')) || [];
-        const CLAVE_ADMIN = "1234"; // Puedes modificar esta clave
+        let clienteSeleccionadoRenov = null;
+        const CLAVE_ADMIN = "1234";
 
-        // Cambiar pestañas
+        // Inicializar opciones de cuotas del 1 al 60
+        function cargarOpcionesCuotas() {
+            const selectNuevo = document.getElementById('cli-cuotas');
+            const selectRenov = document.getElementById('renov-cuotas');
+            selectNuevo.innerHTML = '';
+            selectRenov.innerHTML = '';
+
+            for (let i = 1; i <= 60; i++) {
+                selectNuevo.innerHTML += `<option value="${i}" ${i === 24 ? 'selected' : ''}>${i} cuotas / días</option>`;
+                selectRenov.innerHTML += `<option value="${i}" ${i === 24 ? 'selected' : ''}>${i} cuotas / días</option>`;
+            }
+        }
+
+        // Cálculo dinámico para Formulario Nuevo Cliente
+        function calcularValores() {
+            const monto = parseFloat(document.getElementById('cli-monto').value) || 0;
+            const interes = parseFloat(document.getElementById('cli-interes').value) || 0;
+            const cuotas = parseInt(document.getElementById('cli-cuotas').value) || 1;
+
+            const total = monto + (monto * (interes / 100));
+            const valorCuota = total / cuotas;
+
+            document.getElementById('calc-total').innerText = total.toFixed(2);
+            document.getElementById('calc-valor-cuota').innerText = valorCuota.toFixed(2);
+        }
+
+        // Cálculo dinámico para Renovaciones
+        function calcularValoresRenovacion() {
+            const monto = parseFloat(document.getElementById('renov-monto').value) || 0;
+            const interes = parseFloat(document.getElementById('renov-interes').value) || 0;
+            const cuotas = parseInt(document.getElementById('renov-cuotas').value) || 1;
+
+            const total = monto + (monto * (interes / 100));
+            const valorCuota = total / cuotas;
+
+            document.getElementById('renov-calc-total').innerText = total.toFixed(2);
+            document.getElementById('renov-calc-cuota').innerText = valorCuota.toFixed(2);
+        }
+
         function cambiarTab(idSec, btn) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -373,9 +476,14 @@
             if(idSec === 'sec-resumen') renderizarResumen();
         }
 
-        // Guardar Cliente Nuevo
         function guardarCliente(e) {
             e.preventDefault();
+            const monto = parseFloat(document.getElementById('cli-monto').value);
+            const interes = parseFloat(document.getElementById('cli-interes').value);
+            const cuotas = parseInt(document.getElementById('cli-cuotas').value);
+            const total = monto + (monto * (interes / 100));
+            const valorCuota = total / cuotas;
+
             const nuevo = {
                 id: Date.now(),
                 nombre: document.getElementById('cli-nombre').value,
@@ -383,19 +491,24 @@
                 documento: document.getElementById('cli-documento').value,
                 telefono: document.getElementById('cli-telefono').value,
                 direccion: document.getElementById('cli-direccion').value,
-                monto: parseFloat(document.getElementById('cli-monto').value),
-                cuota: parseFloat(document.getElementById('cli-cuota').value),
+                frecuencia: document.getElementById('cli-frecuencia').value,
+                monto: monto,
+                interes: interes,
+                cuotas: cuotas,
+                totalPagar: total,
+                cuotaVal: valorCuota,
+                saldoPendiente: total,
                 esNuevo: true
             };
 
             clientes.push(nuevo);
             localStorage.setItem('rc_clientes', JSON.stringify(clientes));
             document.getElementById('form-cliente').reset();
+            calcularValores();
             alert("Cliente registrado exitosamente.");
             cambiarTab('sec-ruta', document.querySelectorAll('.tab-btn')[0]);
         }
 
-        // Renderizar Lista de Clientes Pendientes
         function renderizarRuta() {
             const cont = document.getElementById('lista-pendientes');
             cont.innerHTML = '';
@@ -412,22 +525,23 @@
                     <div class="client-card">
                         <div class="client-header">
                             <span>${c.nombre} ${c.apellido}</span>
-                            <span style="color:var(--primary)">R$ ${c.cuota.toFixed(2)}</span>
+                            <span style="color:var(--primary)">R$ ${c.cuotaVal.toFixed(2)}</span>
                         </div>
                         <div class="client-info">
-                            📍 ${c.direccion} | 📞 ${c.telefono}
+                            📍 ${c.direccion} | 📞 ${c.telefono} <br>
+                            🗓️ Pago: <strong>${c.frecuencia}</strong> | Saldo: R$ ${c.saldoPendiente.toFixed(2)}
                         </div>
                         <div class="action-group">
-                            <button class="btn btn-success" onclick="registrarCobro(${c.id}, 'pago', ${c.cuota})">Pagó</button>
+                            <button class="btn btn-success" onclick="registrarCobro(${c.id}, 'pago', ${c.cuotaVal})">Pagó</button>
                             <button class="btn btn-warning" onclick="promptAbono(${c.id})">Abonó</button>
                             <button class="btn btn-danger" onclick="registrarCobro(${c.id}, 'no_pago', 0)">No Pagó</button>
+                            <button class="btn btn-dark" onclick="abrirModalRenovar(${c.id})">Renovar</button>
                         </div>
                     </div>
                 `;
             });
         }
 
-        // Registrar Estado de Pago
         function registrarCobro(id, estado, valor) {
             cobrosDia.push({
                 id: Date.now(),
@@ -436,7 +550,15 @@
                 monto: valor,
                 hora: new Date().toLocaleTimeString()
             });
+
+            // Descontar saldo al cliente
+            const cli = clientes.find(c => c.id === id);
+            if(cli && estado !== 'no_pago') {
+                cli.saldoPendiente -= valor;
+            }
+
             localStorage.setItem('rc_cobros', JSON.stringify(cobrosDia));
+            localStorage.setItem('rc_clientes', JSON.stringify(clientes));
             renderizarRuta();
         }
 
@@ -447,7 +569,45 @@
             }
         }
 
-        // Renderizar Lista de Clientes ya Procesados (Pagos, Abonos, No Pagó)
+        function abrirModalRenovar(id) {
+            clienteSeleccionadoRenov = clientes.find(c => c.id === id);
+            if(!clienteSeleccionadoRenov) return;
+
+            document.getElementById('renov-cliente-nombre').innerText = `${clienteSeleccionadoRenov.nombre} ${clienteSeleccionadoRenov.apellido}`;
+            document.getElementById('modal-renovar').style.display = 'flex';
+        }
+
+        function cerrarModalRenovar() {
+            document.getElementById('modal-renovar').style.display = 'none';
+        }
+
+        function confirmarRenovacion() {
+            const monto = parseFloat(document.getElementById('renov-monto').value);
+            const interes = parseFloat(document.getElementById('renov-interes').value);
+            const cuotas = parseInt(document.getElementById('renov-cuotas').value);
+            
+            if(!monto || monto <= 0) {
+                alert("Ingrese un monto válido.");
+                return;
+            }
+
+            const total = monto + (monto * (interes / 100));
+            const valorCuota = total / cuotas;
+
+            clienteSeleccionadoRenov.frecuencia = document.getElementById('renov-frecuencia').value;
+            clienteSeleccionadoRenov.monto = monto;
+            clienteSeleccionadoRenov.interes = interes;
+            clienteSeleccionadoRenov.cuotas = cuotas;
+            clienteSeleccionadoRenov.totalPagar = total;
+            clienteSeleccionadoRenov.cuotaVal = valorCuota;
+            clienteSeleccionadoRenov.saldoPendiente = total;
+
+            localStorage.setItem('rc_clientes', JSON.stringify(clientes));
+            cerrarModalRenovar();
+            alert("Crédito renovado exitosamente.");
+            renderizarRuta();
+        }
+
         function renderizarRegistros() {
             const filtro = document.getElementById('filtro-estado').value;
             const cont = document.getElementById('lista-registrados');
@@ -466,21 +626,26 @@
                             <span>R$ ${reg.monto.toFixed(2)}</span>
                         </div>
                         <div class="client-info">Registrado a las: ${reg.hora}</div>
-                        <button class="btn btn-danger" style="margin-top:5px; padding:4px;" onclick="eliminarRegistro(${reg.id})">Eliminar Registro (Equivocación)</button>
+                        <button class="btn btn-danger" style="margin-top:5px; padding:6px;" onclick="eliminarRegistro(${reg.id})">Eliminar Registro</button>
                     </div>
                 `;
             });
         }
 
         function eliminarRegistro(regId) {
-            if(confirm("¿Desea eliminar este registro y regresar al cliente a la lista de cobros pendientes?")) {
+            if(confirm("¿Desea eliminar este registro y devolver al cliente a pendientes?")) {
+                const reg = cobrosDia.find(c => c.id === regId);
+                if(reg) {
+                    const cli = clientes.find(c => c.id === reg.clienteId);
+                    if(cli) cli.saldoPendiente += reg.monto;
+                }
                 cobrosDia = cobrosDia.filter(c => c.id !== regId);
                 localStorage.setItem('rc_cobros', JSON.stringify(cobrosDia));
+                localStorage.setItem('rc_clientes', JSON.stringify(clientes));
                 renderizarRegistros();
             }
         }
 
-        // Resumen del Día
         function renderizarResumen() {
             const totalRecaudado = cobrosDia.reduce((sum, c) => sum + c.monto, 0);
             const totalCobrados = cobrosDia.filter(c => c.estado === 'pago' || c.estado === 'abono').length;
@@ -493,26 +658,51 @@
             document.getElementById('res-porcentaje').innerText = `${porc}%`;
         }
 
-        // Admin Modal
         function solicitarAccesoAdmin() {
             document.getElementById('modal-pass').style.display = 'flex';
         }
 
-        function cerrarModal() {
+        function cerrarModalPass() {
             document.getElementById('modal-pass').style.display = 'none';
         }
 
         function validarPassAdmin() {
-            const input = document.getElementById('pass-input').value;
-            if(input === CLAVE_ADMIN) {
+            if(document.getElementById('pass-input').value === CLAVE_ADMIN) {
                 document.getElementById('panel-admin').style.display = 'block';
-                cerrarModal();
+                const totalPendiente = clientes.reduce((sum, c) => sum + c.saldoPendiente, 0);
+                document.getElementById('adm-pendiente').innerText = `R$ ${totalPendiente.toFixed(2)}`;
+                cerrarModalPass();
             } else {
                 alert("Contraseña incorrecta.");
             }
         }
 
-        // Carga inicial
+        function actualizarCategorias() {
+            const tipo = document.getElementById('mov-tipo').value;
+            const catSelect = document.getElementById('mov-categoria');
+            catSelect.innerHTML = '';
+
+            if(tipo === 'egreso') {
+                catSelect.innerHTML = `
+                    <option value="Gasolina">Gasolina</option>
+                    <option value="Alimentación">Alimentación</option>
+                    <option value="Alquiler">Alquiler</option>
+                    <option value="Mantenimiento">Mantenimiento Vehículo</option>
+                    <option value="Sueldo">Sueldo / Nómina</option>
+                    <option value="Gasto Vario">Gasto Vario</option>
+                `;
+            } else {
+                catSelect.innerHTML = `
+                    <option value="Inversión">Inversión a Capital</option>
+                    <option value="Abono Capital">Abono a Capital</option>
+                    <option value="Entrada Extra">Entrada Extra</option>
+                `;
+            }
+        }
+
+        // Inicialización
+        cargarOpcionesCuotas();
+        actualizarCategorias();
         renderizarRuta();
     </script>
 </body>
