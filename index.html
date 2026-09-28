@@ -31,67 +31,67 @@
         body {
             background-color: var(--bg);
             color: var(--text);
-            font-size: 16px;
-            padding-bottom: 80px;
+            font-size: 15px;
+            padding-bottom: 75px;
         }
 
         header {
             background-color: var(--primary);
             color: #fff;
-            padding: 16px;
+            padding: 10px 14px;
             text-align: center;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: bold;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
         .container {
-            padding: 12px;
+            padding: 8px;
             max-width: 600px;
             margin: 0 auto;
         }
 
         .card {
             background: var(--card-bg);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
 
         .card-title {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: bold;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             color: var(--primary);
             border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 6px;
+            padding-bottom: 4px;
         }
 
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 6px;
         }
 
         label {
             display: block;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             color: #475569;
         }
 
         input, select, button {
             width: 100%;
-            padding: 12px;
-            margin-bottom: 10px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
             border: 1.5px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
             outline: none;
         }
 
@@ -102,28 +102,28 @@
         .calc-box {
             background: #eff6ff;
             border: 1.5px dashed var(--primary-light);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
         }
 
         .calc-box p {
-            font-size: 0.95rem;
-            margin-bottom: 4px;
+            font-size: 0.85rem;
+            margin-bottom: 2px;
         }
 
         .btn {
             border: none;
             color: white;
             font-weight: bold;
-            font-size: 1.05rem;
+            font-size: 0.88rem;
             cursor: pointer;
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 6px;
+            padding: 8px 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .btn-primary { background-color: var(--primary-light); }
@@ -143,10 +143,10 @@
 
         .tab-btn {
             flex: 1;
-            padding: 12px 4px;
+            padding: 10px 2px;
             border: none;
             background: none;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
             color: #64748b;
             border-radius: 0;
@@ -159,21 +159,21 @@
             background: #eff6ff;
         }
 
-        /* Tarjetas de Clientes */
+        /* --- TARJETAS DE CLIENTES COMPACTAS --- */
         .client-card {
-            border-left: 6px solid var(--primary-light);
-            padding: 12px;
-            margin-bottom: 10px;
+            border-left: 5px solid var(--primary-light);
+            padding: 8px 10px;
+            margin-bottom: 6px;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
         }
 
-        /* Estados de Mora (Ruta) */
+        /* Estados de Mora */
         .client-card.mora-5 { border-left-color: var(--warning) !important; background: #fffbe2; }
         .client-card.mora-10 { border-left-color: var(--danger) !important; background: #fff0f0; }
 
-        /* Estados de Pago (Registros General) */
+        /* Estados de Registro */
         .client-card.status-pago { border-left-color: var(--success) !important; }
         .client-card.status-abono { border-left-color: var(--warning) !important; }
         .client-card.status-no_pago { border-left-color: var(--danger) !important; }
@@ -182,32 +182,33 @@
             display: flex;
             justify-content: space-between;
             font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 0.95rem;
+            line-height: 1.2;
         }
 
         .client-info {
-            font-size: 0.9rem;
-            color: #64748b;
-            margin: 6px 0;
-            line-height: 1.4;
+            font-size: 0.8rem;
+            color: #475569;
+            margin: 4px 0;
+            line-height: 1.3;
         }
 
         .action-group {
             display: flex;
-            gap: 6px;
-            margin-top: 8px;
+            gap: 4px;
+            margin-top: 6px;
         }
 
         .action-group .btn {
-            padding: 8px;
-            font-size: 0.85rem;
+            padding: 6px 4px;
+            font-size: 0.78rem;
         }
 
         .badge {
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
             font-weight: bold;
             color: white;
         }
@@ -231,10 +232,10 @@
 
         .modal-content {
             background: white;
-            padding: 20px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 450px;
+            padding: 16px;
+            border-radius: 10px;
+            width: 92%;
+            max-width: 420px;
             max-height: 90vh;
             overflow-y: auto;
         }
@@ -242,17 +243,17 @@
         .checkbox-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             background: #eff6ff;
-            padding: 10px 12px;
-            border-radius: 8px;
+            padding: 8px 10px;
+            border-radius: 6px;
             border: 1px dashed var(--primary-light);
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .checkbox-container input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             margin: 0;
             cursor: pointer;
         }
@@ -261,7 +262,7 @@
             margin: 0;
             cursor: pointer;
             color: var(--primary);
-            font-size: 0.95rem;
+            font-size: 0.85rem;
         }
     </style>
 </head>
@@ -386,17 +387,17 @@
                 <div class="card-title">Resumen del Día - Cobrador</div>
                 <p><strong>Caja Base / Capital asignado:</strong> <span id="res-caja-base">R$ 0.00</span></p>
                 <p><strong>Total Recaudado Hoy:</strong> <span id="res-recaudo" style="color:var(--success); font-weight:bold;">R$ 0.00</span></p>
-                <hr style="margin: 10px 0; border:0; border-top: 1px solid #cbd5e1;">
+                <hr style="margin: 8px 0; border:0; border-top: 1px solid #cbd5e1;">
                 <p><strong>Clientes Activos Registrados:</strong> <span id="res-totales">0</span></p>
                 <p><strong>Clientes Nuevos de Hoy:</strong> <span id="res-nuevos">0</span></p>
                 <p><strong>Clientes Renovados de Hoy:</strong> <span id="res-renovados">0</span></p>
                 <p><strong>Efectividad de Cobro:</strong> <span id="res-porcentaje">0%</span></p>
             </div>
 
-            <button class="btn btn-danger" onclick="ejecutarCierreDia()" style="margin-bottom:12px;">🔒 Realizar Cierre Manual del Día</button>
+            <button class="btn btn-danger" onclick="ejecutarCierreDia()" style="margin-bottom:10px;">🔒 Realizar Cierre Manual del Día</button>
             <button class="btn btn-dark" onclick="solicitarAccesoAdmin()">Acceso Panel Administrador 🔑</button>
 
-            <div id="panel-admin" class="card" style="display:none; margin-top:15px; border:2px solid var(--primary);">
+            <div id="panel-admin" class="card" style="display:none; margin-top:10px; border:2px solid var(--primary);">
                 <div class="card-title">Métricas Generales (Solo Admin)</div>
                 <p><strong>Falta por Recaudar:</strong> <span id="adm-pendiente">R$ 0.00</span></p>
                 <p><strong>Capital Total Administrado:</strong> <span id="adm-capital">R$ 0.00</span></p>
@@ -420,9 +421,9 @@
     <div id="modal-pago" class="modal">
         <div class="modal-content">
             <h3>Registrar Pago de Cuotas</h3>
-            <p id="pago-cliente-nombre" style="font-weight:bold; margin: 8px 0; color:var(--primary);"></p>
-            <p style="font-size:0.9rem; color:#475569;">Valor por Cuota: <strong>R$ <span id="pago-valor-cuota">0.00</span></strong></p>
-            <p style="font-size:0.9rem; color:#475569; margin-bottom:12px;">Cuotas Restantes: <strong><span id="pago-cuotas-restantes">0</span></strong></p>
+            <p id="pago-cliente-nombre" style="font-weight:bold; margin: 6px 0; color:var(--primary);"></p>
+            <p style="font-size:0.85rem; color:#475569;">Valor por Cuota: <strong>R$ <span id="pago-valor-cuota">0.00</span></strong></p>
+            <p style="font-size:0.85rem; color:#475569; margin-bottom:8px;">Cuotas Restantes: <strong><span id="pago-cuotas-restantes">0</span></strong></p>
 
             <label>Nº de Cuotas a Pagar *</label>
             <input type="number" id="pago-num-cuotas" value="1" min="1" oninput="calcularTotalPagoModal()">
@@ -432,7 +433,7 @@
             </div>
 
             <button class="btn btn-success" onclick="confirmarPagoModal()">Confirmar Pago</button>
-            <button class="btn btn-danger" onclick="cerrarModalPago()" style="margin-top:8px;">Cancelar</button>
+            <button class="btn btn-danger" onclick="cerrarModalPago()" style="margin-top:6px;">Cancelar</button>
         </div>
     </div>
 
@@ -440,7 +441,7 @@
     <div id="modal-renovar" class="modal">
         <div class="modal-content">
             <h3>Renovar Crédito a Cliente</h3>
-            <p id="renov-cliente-nombre" style="font-weight:bold; margin: 10px 0; color:var(--primary);"></p>
+            <p id="renov-cliente-nombre" style="font-weight:bold; margin: 8px 0; color:var(--primary);"></p>
             
             <label>Frecuencia de Pago *</label>
             <select id="renov-frecuencia">
@@ -475,7 +476,7 @@
             </div>
 
             <button class="btn btn-success" onclick="confirmarRenovacion()">Confirmar Renovación</button>
-            <button class="btn btn-danger" onclick="cerrarModalRenovar()" style="margin-top:8px;">Cancelar</button>
+            <button class="btn btn-danger" onclick="cerrarModalRenovar()" style="margin-top:6px;">Cancelar</button>
         </div>
     </div>
 
@@ -486,7 +487,7 @@
             <br>
             <input type="password" id="pass-input" placeholder="Ingrese clave">
             <button class="btn btn-primary" onclick="validarPassAdmin()">Ingresar</button>
-            <button class="btn btn-danger" onclick="cerrarModalPass()" style="margin-top:8px;">Cancelar</button>
+            <button class="btn btn-danger" onclick="cerrarModalPass()" style="margin-top:6px;">Cancelar</button>
         </div>
     </div>
 
@@ -607,7 +608,7 @@
             });
 
             if(pendientes.length === 0) {
-                cont.innerHTML = '<p style="text-align:center; padding:20px; color:#64748b;">No hay clientes pendientes por cobrar hoy.</p>';
+                cont.innerHTML = '<p style="text-align:center; padding:15px; color:#64748b; font-size:0.85rem;">No hay clientes pendientes por cobrar hoy.</p>';
                 return;
             }
 
@@ -627,8 +628,7 @@
                         </div>
                         <div class="client-info">
                             📍 ${c.direccion} | 📞 ${c.telefono} <br>
-                            🗓️ Pago: <strong>${c.frecuencia}</strong> | ⏳ Cuotas Restantes: <strong>${cuotasPendientes} / ${cuotasTotales}</strong><br>
-                            🔴 Valor Deudor (Saldo): <strong style="color:var(--danger)">R$ ${c.saldoPendiente.toFixed(2)}</strong> | Atraso: <strong>${c.diasAtraso} días</strong>
+                            🗓️ <strong>${c.frecuencia}</strong> | ⏳ Cuotas: <strong>${cuotasPendientes}/${cuotasTotales}</strong> | 🔴 Deuda: <strong style="color:var(--danger)">R$ ${c.saldoPendiente.toFixed(2)}</strong> | Atraso: <strong>${c.diasAtraso}d</strong>
                         </div>
                         <div class="action-group">
                             <button class="btn btn-success" onclick="abrirModalPago(${c.id})">Pagó</button>
@@ -641,7 +641,6 @@
             });
         }
 
-        // --- MANEJO DEL MODAL DE PAGO (1 O MÁS CUOTAS) ---
         function abrirModalPago(id) {
             clienteSeleccionadoPago = clientes.find(c => c.id === id);
             if(!clienteSeleccionadoPago) return;
@@ -720,7 +719,7 @@
             cont.innerHTML = '';
 
             if(cobrosDia.length === 0) {
-                cont.innerHTML = '<p style="text-align:center; padding:20px; color:#64748b;">Aún no se han registrado pagos hoy.</p>';
+                cont.innerHTML = '<p style="text-align:center; padding:15px; color:#64748b; font-size:0.85rem;">Aún no se han registrado pagos hoy.</p>';
                 return;
             }
 
@@ -742,9 +741,9 @@
                         </div>
                         <div class="client-info">
                             <span class="badge badge-${reg.estado}">${textoEstado} ${detalleCuotas}</span>
-                            <span style="margin-left:8px;">Hora: ${reg.hora}</span>
+                            <span style="margin-left:6px;">Hora: ${reg.hora}</span>
                         </div>
-                        <button class="btn btn-danger" style="margin-top:6px; padding:6px; font-size:0.85rem;" onclick="eliminarRegistro(${reg.id})">Deshacer / Eliminar</button>
+                        <button class="btn btn-danger" style="margin-top:4px; padding:4px 8px; font-size:0.75rem;" onclick="eliminarRegistro(${reg.id})">Deshacer / Eliminar</button>
                     </div>
                 `;
             });
