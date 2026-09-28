@@ -141,12 +141,6 @@
             color: white;
         }
 
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-        }
-
         .resumen-metric {
             display: flex;
             justify-content: space-between;
@@ -246,8 +240,12 @@
                     <span>Caja Base / Inicial:</span>
                     <span id="res-caja-base" class="resumen-val">R$ 0.00</span>
                 </div>
+                <div class="resumen-metric" style="background-color: #f0fdf4; padding: 0.5rem; border-radius: 6px;">
+                    <span><strong>Recaudo Esperado (100%):</strong></span>
+                    <span id="res-recaudo-esperado" class="resumen-val" style="color: var(--primary); font-weight: bold;">R$ 0.00</span>
+                </div>
                 <div class="resumen-metric">
-                    <span>Total Recaudado (Ruta):</span>
+                    <span>Total Recaudado Real:</span>
                     <span id="res-recaudo" class="resumen-val" style="color: var(--success);">R$ 0.00</span>
                 </div>
                 <div class="resumen-metric">
@@ -263,9 +261,13 @@
                     <span id="res-egresos" class="resumen-val" style="color: var(--danger);">R$ 0.00</span>
                 </div>
                 <hr style="margin: 0.5rem 0; border: none; border-top: 1px solid var(--border);">
-                <div class="resumen-metric" style="font-size: 1.1rem;">
-                    <span><strong>Efectivo Actual en Caja:</strong></span>
+                <div class="resumen-metric">
+                    <span>Efectivo Actual en Caja:</span>
                     <span id="res-saldo-caja" class="resumen-val">R$ 0.00</span>
+                </div>
+                <div class="resumen-metric" style="font-size: 1.05rem;">
+                    <span><strong>Efectivo Proyectado (100%):</strong></span>
+                    <span id="res-saldo-proyectado" class="resumen-val" style="color: var(--primary);">R$ 0.00</span>
                 </div>
             </div>
 
@@ -326,6 +328,10 @@
                     <input type="number" id="reg-monto" class="form-control" placeholder="0.00" step="0.01">
                 </div>
                 <div class="form-group">
+                    <label>Cuota Diaria Esperada (R$)</label>
+                    <input type="number" id="reg-cuota" class="form-control" placeholder="0.00" step="0.01">
+                </div>
+                <div class="form-group">
                     <label>Tipo de Operación</label>
                     <select id="reg-tipo" class="form-control">
                         <option value="nuevo">Nuevo Cliente</option>
@@ -375,7 +381,7 @@
     </nav>
 
     <script>
-        // ESTADO GLOBAL EN MEMORIA
+        // ESTADO GLOBAL EN MEMORIA LOCALSTORAGE
         let cajaBase = parseFloat(localStorage.getItem('rc_caja_base')) || 0;
         let clientes = JSON.parse(localStorage.getItem('rc_clientes')) || [];
         let cobrosDia = JSON.parse(localStorage.getItem('rc_cobros')) || [];
@@ -402,13 +408,14 @@
             const val = parseFloat(document.getElementById('input-caja-base').value) || 0;
             cajaBase = val;
             localStorage.setItem('rc_caja_base', cajaBase);
-            alert('Caja Base actualizada correctamente.');
+            alert('Caja Base actualizada.');
             renderizarResumen();
         }
 
         function registrarCliente() {
             const nombre = document.getElementById('reg-nombre').value.trim();
             const monto = parseFloat(document.getElementById('reg-monto').value) || 0;
+            const cuota = parseFloat(document.getElementById('reg-cuota').value) || (monto * 0.1);
             const tipo = document.getElementById('reg-tipo').value;
             const fechaHoy = new Date().toISOString().split('T')[0];
 
@@ -421,6 +428,7 @@
                 id: Date.now(),
                 nombre: nombre,
                 monto: monto,
+                cuota: cuota,
                 fechaRegistro: fechaHoy,
                 esNuevo: tipo === 'nuevo',
                 esRenovado: tipo === 'renovado'
@@ -431,6 +439,7 @@
 
             document.getElementById('reg-nombre').value = '';
             document.getElementById('reg-monto').value = '';
+            document.getElementById('reg-cuota').value = '';
             alert('Préstamo registrado exitosamente.');
             renderizarRuta();
             renderizarResumen();
@@ -456,8 +465,11 @@
         }
 
         function registrarCobro(idCliente) {
-            const montoStr = prompt('Ingrese el monto cobrado:');
-            if(!montoStr) return;
+            const cliente = clientes.find(c => c.id === idCliente);
+            const sugerido = cliente ? cliente.cuota : '';
+            const montoStr = prompt(`Monto a cobrar (Cuota esperada: R$ ${sugerido}):`, sugerido);
+            if(montoStr === null) return;
+            
             const monto = parseFloat(montoStr) || 0;
 
             cobrosDia.push({
@@ -485,10 +497,10 @@
                     <div class="cliente-item">
                         <div class="cliente-info">
                             <h4>${c.nombre}</h4>
-                            <p>Préstamo: R$ ${c.monto.toFixed(2)} ${c.esNuevo ? '<span class="badge badge-nuevo">Nuevo</span>' : ''}${c.esRenovado ? '<span class="badge badge-renovado">Renovado</span>' : ''}</p>
+                            <p>Cuota: R$ ${c.cuota.toFixed(2)} | Prestado: R$ ${c.monto.toFixed(2)} ${c.esNuevo ? '<span class="badge badge-nuevo">Nuevo</span>' : ''}${c.esRenovado ? '<span class="badge badge-renovado">Renovado</span>' : ''}</p>
                         </div>
                         <div>
-                            ${cobrado ? `<span class="badge badge-pago">R$ ${cobrado.monto.toFixed(2)}</span>` : `<button class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.85rem;" onclick="registrarCobro(${c.id})">Cobrar</button>`}
+                            ${cobrado ? `<span class="badge badge-pago">Cobrado: R$ ${cobrado.monto.toFixed(2)}</span>` : `<button class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.85rem;" onclick="registrarCobro(${c.id})">Cobrar</button>`}
                         </div>
                     </div>
                 `;
@@ -498,14 +510,17 @@
         function renderizarResumen() {
             const fechaHoy = new Date().toISOString().split('T')[0];
 
-            // 1. Recaudación en Ruta
+            // 1. Recaudación Esperada (100% de la cuota de todos los clientes)
+            const totalEsperadoRuta = clientes.reduce((sum, c) => sum + (c.cuota || 0), 0);
+
+            // 2. Recaudación Real en Ruta
             const totalRecaudadoRuta = cobrosDia.reduce((sum, c) => sum + (c.monto || 0), 0);
 
-            // 2. Movimientos de Caja Extra (Ingresos / Gastos)
+            // 3. Movimientos Extras
             const totalIngresosExtra = movimientos.filter(m => m.tipo === 'ingreso').reduce((sum, m) => sum + m.monto, 0);
             const totalEgresosGastos = movimientos.filter(m => m.tipo === 'egreso').reduce((sum, m) => sum + m.monto, 0);
 
-            // 3. Préstamos Otorgados Hoy
+            // 4. Préstamos Otorgados Hoy
             const totalPrestadoNuevos = clientes
                 .filter(c => c.fechaRegistro === fechaHoy && c.esNuevo)
                 .reduce((sum, c) => sum + (c.monto || 0), 0);
@@ -516,8 +531,9 @@
 
             const totalPrestadoHoy = totalPrestadoNuevos + totalPrestadoRenovados;
 
-            // 4. Saldo Real Actual en Caja
+            // 5. Saldos de Caja (Real vs Proyectado)
             const saldoCajaActual = (cajaBase + totalRecaudadoRuta + totalIngresosExtra) - (totalPrestadoHoy + totalEgresosGastos);
+            const saldoProyectadoCaja = (cajaBase + totalEsperadoRuta + totalIngresosExtra) - (totalPrestadoHoy + totalEgresosGastos);
 
             // Métricas
             const totalCobrados = cobrosDia.filter(c => c.monto > 0).length;
@@ -528,6 +544,7 @@
 
             // Renderizar DOM
             document.getElementById('res-caja-base').innerText = `R$ ${cajaBase.toFixed(2)}`;
+            document.getElementById('res-recaudo-esperado').innerText = `R$ ${totalEsperadoRuta.toFixed(2)}`;
             document.getElementById('res-recaudo').innerText = `R$ ${totalRecaudadoRuta.toFixed(2)}`;
             document.getElementById('res-ingresos').innerText = `R$ ${totalIngresosExtra.toFixed(2)}`;
             document.getElementById('res-prestado').innerText = `R$ ${totalPrestadoHoy.toFixed(2)}`;
@@ -536,6 +553,8 @@
             const elSaldo = document.getElementById('res-saldo-caja');
             elSaldo.innerText = `R$ ${saldoCajaActual.toFixed(2)}`;
             elSaldo.style.color = saldoCajaActual < 0 ? 'var(--danger)' : 'var(--success)';
+
+            document.getElementById('res-saldo-proyectado').innerText = `R$ ${saldoProyectadoCaja.toFixed(2)}`;
 
             document.getElementById('res-totales').innerText = clientesTotales;
             document.getElementById('res-cobrados').innerText = totalCobrados;
