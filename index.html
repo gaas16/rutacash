@@ -146,7 +146,7 @@
             padding: 12px 4px;
             border: none;
             background: none;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 600;
             color: #64748b;
             border-radius: 0;
@@ -238,12 +238,29 @@
             overflow-y: auto;
         }
 
-        .pago-inmediato-box {
-            background: #f8fafc;
-            border: 1px dashed #cbd5e1;
-            padding: 10px;
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #eff6ff;
+            padding: 10px 12px;
             border-radius: 8px;
+            border: 1px dashed var(--primary-light);
             margin-bottom: 12px;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .checkbox-container label {
+            margin: 0;
+            cursor: pointer;
+            color: var(--primary);
+            font-size: 0.95rem;
         }
     </style>
 </head>
@@ -273,7 +290,7 @@
         <div id="sec-nuevo" class="section">
             <div class="card">
                 <div class="card-title">Registro de Cliente Nuevo</div>
-                <form id="form-cliente" onsubmit="guardarCliente(event, 'normal')">
+                <form id="form-cliente" onsubmit="guardarCliente(event)">
                     
                     <label>Nombre *</label>
                     <input type="text" id="cli-nombre" required placeholder="Ej: Juan">
@@ -332,28 +349,21 @@
                         <p><strong>Valor por Cuota:</strong> R$ <span id="calc-valor-cuota">0.00</span></p>
                     </div>
 
-                    <!-- OPCIÓN DE COBRO INMEDIATO -->
-                    <div class="pago-inmediato-box">
-                        <label style="color:var(--primary);">💵 ¿El cliente pagó/abonó hoy mismo la 1ª cuota?</label>
-                        <div class="grid-2" style="margin-top:6px;">
-                            <input type="number" id="monto-primer-pago" placeholder="Monto abonado hoy">
-                            <select id="tipo-primer-pago">
-                                <option value="pago">Cuota Completa</option>
-                                <option value="abono">Abono Parcial</option>
-                            </select>
-                        </div>
+                    <!-- CASILLA DE DISPONIBILIDAD DE COBRO HOY -->
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="cli-disponible-hoy">
+                        <label for="cli-disponible-hoy">⚡ ¿Disponible para cobrar HOY mismo?</label>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">💾 Guardar (Inicia cobro mañana)</button>
-                    <button type="button" class="btn btn-success" style="margin-top:8px;" onclick="guardarConPagoHoy()">⚡ Guardar y Registrar Pago Hoy</button>
+                    <button type="submit" class="btn btn-success">Guardar Cliente</button>
                 </form>
             </div>
         </div>
 
-        <!-- 4. PESTAÑA: CAJA Y MOVIMIENTOS -->
+        <!-- 4. PESTAÑA: INGRESOS Y EGRESOS -->
         <div id="sec-caja" class="section">
             <div class="card">
-                <div class="card-title">Movimientos de Caja</div>
+                <div class="card-title">Movimientos de Ingresos y Egresos</div>
                 <label>Tipo de Movimiento</label>
                 <select id="mov-tipo" onchange="actualizarCategorias()">
                     <option value="egreso">Egreso (Gasto)</option>
@@ -370,24 +380,32 @@
             </div>
         </div>
 
-        <!-- 5. PESTAÑA: RESUMEN Y ADMIN -->
+        <!-- 5. PESTAÑA: RESUMEN DEL DÍA (VISUALIZACIÓN COBRADOR) -->
         <div id="sec-resumen" class="section">
             <div class="card">
-                <div class="card-title">Resumen del Día Actual</div>
-                <p><strong>Recaudado Hoy:</strong> <span id="res-recaudo">R$ 0.00</span></p>
-                <p><strong>Cobrados / Abonados:</strong> <span id="res-cobrados">0</span> clientes</p>
-                <p><strong>Clientes Nuevos:</strong> <span id="res-nuevos">0</span></p>
+                <div class="card-title">Resumen del Día - Cobrador</div>
+                <p><strong>Caja Base / Capital asignado:</strong> <span id="res-caja-base">R$ 0.00</span></p>
+                <p><strong>Total Recaudado Hoy:</strong> <span id="res-recaudo" style="color:var(--success); font-weight:bold;">R$ 0.00</span></p>
+                <hr style="margin: 10px 0; border:0; border-top: 1px solid #cbd5e1;">
+                <p><strong>Clientes Activos Registrados:</strong> <span id="res-totales">0</span></p>
+                <p><strong>Clientes Nuevos de Hoy:</strong> <span id="res-nuevos">0</span></p>
+                <p><strong>Clientes Renovados de Hoy:</strong> <span id="res-renovados">0</span></p>
                 <p><strong>Efectividad de Cobro:</strong> <span id="res-porcentaje">0%</span></p>
             </div>
 
-            <button class="btn btn-dark" onclick="solicitarAccesoAdmin()">Acceso Panel Administrador 🔒</button>
+            <!-- BOTÓN DE CIERRE MANUAL DEL DÍA (ACCESIBLE PARA EL TRABAJADOR) -->
+            <button class="btn btn-danger" onclick="ejecutarCierreDia()" style="margin-bottom:12px;">🔒 Realizar Cierre Manual del Día</button>
 
+            <!-- ACCESO ADMINISTRADOR -->
+            <button class="btn btn-dark" onclick="solicitarAccesoAdmin()">Acceso Panel Administrador 🔑</button>
+
+            <!-- PANEL ADMINISTRADOR (SE CIERRA AUTOMÁTICAMENTE AL SALIR) -->
             <div id="panel-admin" class="card" style="display:none; margin-top:15px; border:2px solid var(--primary);">
-                <div class="card-title">Resumen de Cartera y Cierre</div>
+                <div class="card-title">Métricas Generales (Solo Admin)</div>
                 <p><strong>Falta por Recaudar:</strong> <span id="adm-pendiente">R$ 0.00</span></p>
                 <p><strong>Capital Total Administrado:</strong> <span id="adm-capital">R$ 0.00</span></p>
                 <br>
-                <button class="btn btn-danger" onclick="ejecutarCierreDia()">🔒 Realizar Cierre Manual del Día</button>
+                <button class="btn btn-warning" onclick="cerrarPanelAdmin()">Cerrar Panel Admin 🔐</button>
             </div>
         </div>
 
@@ -398,7 +416,7 @@
         <button class="tab-btn active" onclick="cambiarTab('sec-ruta', this)">Ruta</button>
         <button class="tab-btn" onclick="cambiarTab('sec-registros', this)">Registros</button>
         <button class="tab-btn" onclick="cambiarTab('sec-nuevo', this)">+ Nuevo</button>
-        <button class="tab-btn" onclick="cambiarTab('sec-caja', this)">Caja</button>
+        <button class="tab-btn" onclick="cambiarTab('sec-caja', this)">Ingresos/Egresos</button>
         <button class="tab-btn" onclick="cambiarTab('sec-resumen', this)">Resumen</button>
     </nav>
 
@@ -459,6 +477,7 @@
     <script>
         let clientes = JSON.parse(localStorage.getItem('rc_clientes')) || [];
         let cobrosDia = JSON.parse(localStorage.getItem('rc_cobros')) || [];
+        let cajaBase = parseFloat(localStorage.getItem('rc_caja_base')) || 0.00;
         let clienteSeleccionadoRenov = null;
         const CLAVE_ADMIN = "1234";
 
@@ -485,11 +504,6 @@
 
             document.getElementById('calc-total').innerText = total.toFixed(2);
             document.getElementById('calc-valor-cuota').innerText = valorCuota.toFixed(2);
-
-            // Rellenar automáticamente monto del primer pago si está vacío
-            if(!document.getElementById('monto-primer-pago').value) {
-                document.getElementById('monto-primer-pago').placeholder = `Ej: ${valorCuota.toFixed(2)}`;
-            }
         }
 
         function calcularValoresRenovacion() {
@@ -505,6 +519,9 @@
         }
 
         function cambiarTab(idSec, btn) {
+            // Cierra el panel admin automáticamente al cambiar de pestaña
+            cerrarPanelAdmin();
+
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(idSec).classList.add('active');
@@ -515,14 +532,8 @@
             if(idSec === 'sec-resumen') renderizarResumen();
         }
 
-        function guardarCliente(e, modo) {
-            if(e) e.preventDefault();
-
-            const form = document.getElementById('form-cliente');
-            if(!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
+        function guardarCliente(e) {
+            e.preventDefault();
 
             const monto = parseFloat(document.getElementById('cli-monto').value);
             const interes = parseFloat(document.getElementById('cli-interes').value);
@@ -531,6 +542,7 @@
             const valorCuota = total / cuotas;
 
             const fechaHoy = new Date().toISOString().split('T')[0];
+            const cobroHoyMismo = document.getElementById('cli-disponible-hoy').checked;
 
             const nuevo = {
                 id: Date.now(),
@@ -548,59 +560,40 @@
                 saldoPendiente: total,
                 diasAtraso: 0,
                 fechaRegistro: fechaHoy,
-                esNuevo: true
+                disponibleHoy: cobroHoyMismo,
+                esNuevo: true,
+                esRenovado: false
             };
 
             clientes.push(nuevo);
-
-            // Si se seleccionó realizar pago inmediato el mismo día del préstamo
-            if(modo === 'pago_hoy') {
-                const montoIngresado = parseFloat(document.getElementById('monto-primer-pago').value) || valorCuota;
-                const tipoPago = document.getElementById('tipo-primer-pago').value;
-
-                cobrosDia.push({
-                    id: Date.now() + 1,
-                    clienteId: nuevo.id,
-                    estado: tipoPago,
-                    monto: montoIngresado,
-                    hora: new Date().toLocaleTimeString()
-                });
-
-                nuevo.saldoPendiente -= montoIngresado;
-            }
-
             localStorage.setItem('rc_clientes', JSON.stringify(clientes));
-            localStorage.setItem('rc_cobros', JSON.stringify(cobrosDia));
-            
-            form.reset();
+
+            document.getElementById('form-cliente').reset();
             cargarOpcionesCuotas();
             calcularValores();
 
-            if(modo === 'pago_hoy') {
-                alert("Cliente registrado y primer pago contabilizado correctamente.");
-                cambiarTab('sec-registros', document.querySelectorAll('.tab-btn')[1]);
+            if(cobroHoyMismo) {
+                alert("Cliente registrado. Disponible de inmediato en la Ruta de Cobro para hoy.");
             } else {
                 alert("Cliente registrado. Entrará en lista de cobro a partir de mañana.");
-                cambiarTab('sec-ruta', document.querySelectorAll('.tab-btn')[0]);
             }
+
+            cambiarTab('sec-ruta', document.querySelectorAll('.tab-btn')[0]);
         }
 
-        function guardarConPagoHoy() {
-            guardarCliente(null, 'pago_hoy');
-        }
-
-        // Renderizar Lista de Pendientes (Solo clientes registrados antes de hoy o sin pago hoy)
+        // Renderizar Lista de Pendientes
         function renderizarRuta() {
             const cont = document.getElementById('lista-pendientes');
             cont.innerHTML = '';
 
             const fechaHoy = new Date().toISOString().split('T')[0];
 
-            // Filtro: No muestra a clientes creados HOY salvo que se decida explícitamente cobrarles, ni a los que ya registraron cobro hoy
+            // Filtro: muestra pendientes si no se ha cobrado hoy y si fue registrado antes de hoy O se marcó como disponible hoy
             const pendientes = clientes.filter(c => {
                 const yaCobroHoy = cobrosDia.some(cob => cob.clienteId === c.id);
                 const esDeHoy = c.fechaRegistro === fechaHoy;
-                return !yaCobroHoy && !esDeHoy;
+                const habilitadoHoy = !esDeHoy || c.disponibleHoy;
+                return !yaCobroHoy && habilitadoHoy;
             });
 
             if(pendientes.length === 0) {
@@ -660,7 +653,6 @@
             }
         }
 
-        // Renderizar Lista General de Registros del Día
         function renderizarRegistros() {
             const cont = document.getElementById('lista-registrados');
             cont.innerHTML = '';
@@ -709,7 +701,7 @@
         }
 
         function ejecutarCierreDia() {
-            if(confirm("¿Está seguro de realizar el CIERRE MANUAL DEL DÍA? Se archivará la jornada y se actualizará el día.")) {
+            if(confirm("¿Está seguro de realizar el CIERRE MANUAL DEL DÍA? Se actualizarán las moras y el sistema quedará listo para mañana.")) {
                 clientes.forEach(c => {
                     const cobro = cobrosDia.find(cob => cob.clienteId === c.id);
                     if(!cobro || cobro.estado === 'no_pago') {
@@ -717,25 +709,36 @@
                     } else if(cobro.estado === 'pago') {
                         if(c.diasAtraso > 0) c.diasAtraso -= 1;
                     }
+                    // Reset de banderas del día
+                    c.esNuevo = false;
+                    c.esRenovado = false;
+                    c.disponibleHoy = false;
                 });
 
                 cobrosDia = [];
                 localStorage.setItem('rc_cobros', JSON.stringify(cobrosDia));
                 localStorage.setItem('rc_clientes', JSON.stringify(clientes));
-                alert("Cierre finalizado. El sistema está listo para la nueva jornada.");
+                alert("Cierre de día completado con éxito.");
                 location.reload();
             }
         }
 
         function renderizarResumen() {
+            const fechaHoy = new Date().toISOString().split('T')[0];
             const totalRecaudado = cobrosDia.reduce((sum, c) => sum + c.monto, 0);
             const totalCobrados = cobrosDia.filter(c => c.estado === 'pago' || c.estado === 'abono').length;
-            const nuevos = clientes.filter(c => c.esNuevo).length;
-            const porc = clientes.length > 0 ? ((totalCobrados / clientes.length) * 100).toFixed(1) : 0;
 
+            const clientesTotales = clientes.length;
+            const nuevosHoy = clientes.filter(c => c.fechaRegistro === fechaHoy && c.esNuevo).length;
+            const renovadosHoy = clientes.filter(c => c.esRenovado).length;
+
+            const porc = clientesTotales > 0 ? ((totalCobrados / clientesTotales) * 100).toFixed(1) : 0;
+
+            document.getElementById('res-caja-base').innerText = `R$ ${cajaBase.toFixed(2)}`;
             document.getElementById('res-recaudo').innerText = `R$ ${totalRecaudado.toFixed(2)}`;
-            document.getElementById('res-cobrados').innerText = totalCobrados;
-            document.getElementById('res-nuevos').innerText = nuevos;
+            document.getElementById('res-totales').innerText = clientesTotales;
+            document.getElementById('res-nuevos').innerText = nuevosHoy;
+            document.getElementById('res-renovados').innerText = renovadosHoy;
             document.getElementById('res-porcentaje').innerText = `${porc}%`;
         }
 
@@ -745,17 +748,24 @@
 
         function cerrarModalPass() {
             document.getElementById('modal-pass').style.display = 'none';
+            document.getElementById('pass-input').value = '';
         }
 
         function validarPassAdmin() {
             if(document.getElementById('pass-input').value === CLAVE_ADMIN) {
                 document.getElementById('panel-admin').style.display = 'block';
                 const totalPendiente = clientes.reduce((sum, c) => sum + c.saldoPendiente, 0);
+                const capitalTotal = clientes.reduce((sum, c) => sum + c.totalPagar, 0);
                 document.getElementById('adm-pendiente').innerText = `R$ ${totalPendiente.toFixed(2)}`;
+                document.getElementById('adm-capital').innerText = `R$ ${capitalTotal.toFixed(2)}`;
                 cerrarModalPass();
             } else {
                 alert("Contraseña incorrecta.");
             }
+        }
+
+        function cerrarPanelAdmin() {
+            document.getElementById('panel-admin').style.display = 'none';
         }
 
         function abrirModalRenovar(id) {
@@ -791,6 +801,7 @@
             clienteSeleccionadoRenov.cuotaVal = valorCuota;
             clienteSeleccionadoRenov.saldoPendiente = total;
             clienteSeleccionadoRenov.diasAtraso = 0;
+            clienteSeleccionadoRenov.esRenovado = true;
 
             localStorage.setItem('rc_clientes', JSON.stringify(clientes));
             cerrarModalRenovar();
