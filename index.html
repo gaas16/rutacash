@@ -189,6 +189,7 @@
             font-size: 0.9rem;
             color: #64748b;
             margin: 6px 0;
+            line-height: 1.4;
         }
 
         .action-group {
@@ -349,7 +350,6 @@
                         <p><strong>Valor por Cuota:</strong> R$ <span id="calc-valor-cuota">0.00</span></p>
                     </div>
 
-                    <!-- CASILLA DE DISPONIBILIDAD DE COBRO HOY -->
                     <div class="checkbox-container">
                         <input type="checkbox" id="cli-disponible-hoy">
                         <label for="cli-disponible-hoy">⚡ ¿Disponible para cobrar HOY mismo?</label>
@@ -380,7 +380,7 @@
             </div>
         </div>
 
-        <!-- 5. PESTAÑA: RESUMEN DEL DÍA (VISUALIZACIÓN COBRADOR) -->
+        <!-- 5. PESTAÑA: RESUMEN DEL DÍA -->
         <div id="sec-resumen" class="section">
             <div class="card">
                 <div class="card-title">Resumen del Día - Cobrador</div>
@@ -393,13 +393,9 @@
                 <p><strong>Efectividad de Cobro:</strong> <span id="res-porcentaje">0%</span></p>
             </div>
 
-            <!-- BOTÓN DE CIERRE MANUAL DEL DÍA (ACCESIBLE PARA EL TRABAJADOR) -->
             <button class="btn btn-danger" onclick="ejecutarCierreDia()" style="margin-bottom:12px;">🔒 Realizar Cierre Manual del Día</button>
-
-            <!-- ACCESO ADMINISTRADOR -->
             <button class="btn btn-dark" onclick="solicitarAccesoAdmin()">Acceso Panel Administrador 🔑</button>
 
-            <!-- PANEL ADMINISTRADOR (SE CIERRA AUTOMÁTICAMENTE AL SALIR) -->
             <div id="panel-admin" class="card" style="display:none; margin-top:15px; border:2px solid var(--primary);">
                 <div class="card-title">Métricas Generales (Solo Admin)</div>
                 <p><strong>Falta por Recaudar:</strong> <span id="adm-pendiente">R$ 0.00</span></p>
@@ -419,6 +415,26 @@
         <button class="tab-btn" onclick="cambiarTab('sec-caja', this)">Ingresos/Egresos</button>
         <button class="tab-btn" onclick="cambiarTab('sec-resumen', this)">Resumen</button>
     </nav>
+
+    <!-- MODAL REGISTRAR PAGO CON MULTIPLES CUOTAS -->
+    <div id="modal-pago" class="modal">
+        <div class="modal-content">
+            <h3>Registrar Pago de Cuotas</h3>
+            <p id="pago-cliente-nombre" style="font-weight:bold; margin: 8px 0; color:var(--primary);"></p>
+            <p style="font-size:0.9rem; color:#475569;">Valor por Cuota: <strong>R$ <span id="pago-valor-cuota">0.00</span></strong></p>
+            <p style="font-size:0.9rem; color:#475569; margin-bottom:12px;">Cuotas Restantes: <strong><span id="pago-cuotas-restantes">0</span></strong></p>
+
+            <label>Nº de Cuotas a Pagar *</label>
+            <input type="number" id="pago-num-cuotas" value="1" min="1" oninput="calcularTotalPagoModal()">
+
+            <div class="calc-box">
+                <p><strong>Monto Total a Recibir:</strong> R$ <span id="pago-calc-total">0.00</span></p>
+            </div>
+
+            <button class="btn btn-success" onclick="confirmarPagoModal()">Confirmar Pago</button>
+            <button class="btn btn-danger" onclick="cerrarModalPago()" style="margin-top:8px;">Cancelar</button>
+        </div>
+    </div>
 
     <!-- MODAL RENOVACIÓN -->
     <div id="modal-renovar" class="modal">
@@ -478,6 +494,7 @@
         let clientes = JSON.parse(localStorage.getItem('rc_clientes')) || [];
         let cobrosDia = JSON.parse(localStorage.getItem('rc_cobros')) || [];
         let cajaBase = parseFloat(localStorage.getItem('rc_caja_base')) || 0.00;
+        let clienteSeleccionadoPago = null;
         let clienteSeleccionadoRenov = null;
         const CLAVE_ADMIN = "1234";
 
@@ -519,7 +536,6 @@
         }
 
         function cambiarTab(idSec, btn) {
-            // Cierra el panel admin automáticamente al cambiar de pestaña
             cerrarPanelAdmin();
 
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -554,7 +570,8 @@
                 frecuencia: document.getElementById('cli-frecuencia').value,
                 monto: monto,
                 interes: interes,
-                cuotas: cuotas,
+                cuotasTotales: cuotas,
+                cuotasRestantes: cuotas,
                 totalPagar: total,
                 cuotaVal: valorCuota,
                 saldoPendiente: total,
@@ -572,28 +589,21 @@
             cargarOpcionesCuotas();
             calcularValores();
 
-            if(cobroHoyMismo) {
-                alert("Cliente registrado. Disponible de inmediato en la Ruta de Cobro para hoy.");
-            } else {
-                alert("Cliente registrado. Entrará en lista de cobro a partir de mañana.");
-            }
-
+            alert(cobroHoyMismo ? "Cliente registrado y disponible hoy." : "Cliente registrado para mañana.");
             cambiarTab('sec-ruta', document.querySelectorAll('.tab-btn')[0]);
         }
 
-        // Renderizar Lista de Pendientes
         function renderizarRuta() {
             const cont = document.getElementById('lista-pendientes');
             cont.innerHTML = '';
 
             const fechaHoy = new Date().toISOString().split('T')[0];
 
-            // Filtro: muestra pendientes si no se ha cobrado hoy y si fue registrado antes de hoy O se marcó como disponible hoy
             const pendientes = clientes.filter(c => {
                 const yaCobroHoy = cobrosDia.some(cob => cob.clienteId === c.id);
                 const esDeHoy = c.fechaRegistro === fechaHoy;
                 const habilitadoHoy = !esDeHoy || c.disponibleHoy;
-                return !yaCobroHoy && habilitadoHoy;
+                return !yaCobroHoy && habilitadoHoy && c.saldoPendiente > 0;
             });
 
             if(pendientes.length === 0) {
@@ -606,20 +616,24 @@
                 if(c.diasAtraso >= 10) claseMora = 'mora-10';
                 else if(c.diasAtraso >= 5) claseMora = 'mora-5';
 
+                const cuotasPendientes = c.cuotasRestantes !== undefined ? c.cuotasRestantes : Math.ceil(c.saldoPendiente / c.cuotaVal);
+                const cuotasTotales = c.cuotasTotales || c.cuotas;
+
                 cont.innerHTML += `
                     <div class="client-card ${claseMora}">
                         <div class="client-header">
                             <span>${c.nombre} ${c.apellido}</span>
-                            <span style="color:var(--primary)">R$ ${c.cuotaVal.toFixed(2)}</span>
+                            <span style="color:var(--primary)">Cuota: R$ ${c.cuotaVal.toFixed(2)}</span>
                         </div>
                         <div class="client-info">
                             📍 ${c.direccion} | 📞 ${c.telefono} <br>
-                            🗓️ Pago: <strong>${c.frecuencia}</strong> | Saldo: R$ ${c.saldoPendiente.toFixed(2)} | Atraso: <strong>${c.diasAtraso} días</strong>
+                            🗓️ Pago: <strong>${c.frecuencia}</strong> | ⏳ Cuotas Restantes: <strong>${cuotasPendientes} / ${cuotasTotales}</strong><br>
+                            🔴 Valor Deudor (Saldo): <strong style="color:var(--danger)">R$ ${c.saldoPendiente.toFixed(2)}</strong> | Atraso: <strong>${c.diasAtraso} días</strong>
                         </div>
                         <div class="action-group">
-                            <button class="btn btn-success" onclick="registrarCobro(${c.id}, 'pago', ${c.cuotaVal})">Pagó</button>
+                            <button class="btn btn-success" onclick="abrirModalPago(${c.id})">Pagó</button>
                             <button class="btn btn-warning" onclick="promptAbono(${c.id})">Abonó</button>
-                            <button class="btn btn-danger" onclick="registrarCobro(${c.id}, 'no_pago', 0)">No Pagó</button>
+                            <button class="btn btn-danger" onclick="registrarCobroDirecto(${c.id}, 'no_pago', 0, 0)">No Pagó</button>
                             <button class="btn btn-dark" onclick="abrirModalRenovar(${c.id})">Renovar</button>
                         </div>
                     </div>
@@ -627,18 +641,66 @@
             });
         }
 
-        function registrarCobro(id, estado, valor) {
+        // --- MANEJO DEL MODAL DE PAGO (1 O MÁS CUOTAS) ---
+        function abrirModalPago(id) {
+            clienteSeleccionadoPago = clientes.find(c => c.id === id);
+            if(!clienteSeleccionadoPago) return;
+
+            document.getElementById('pago-cliente-nombre').innerText = `${clienteSeleccionadoPago.nombre} ${clienteSeleccionadoPago.apellido}`;
+            document.getElementById('pago-valor-cuota').innerText = clienteSeleccionadoPago.cuotaVal.toFixed(2);
+            
+            const cuotasPendientes = clienteSeleccionadoPago.cuotasRestantes !== undefined ? clienteSeleccionadoPago.cuotasRestantes : Math.ceil(clienteSeleccionadoPago.saldoPendiente / clienteSeleccionadoPago.cuotaVal);
+            document.getElementById('pago-cuotas-restantes').innerText = `${cuotasPendientes} cuotas`;
+
+            const inputCuotas = document.getElementById('pago-num-cuotas');
+            inputCuotas.value = 1;
+            inputCuotas.max = cuotasPendientes;
+
+            calcularTotalPagoModal();
+            document.getElementById('modal-pago').style.display = 'flex';
+        }
+
+        function calcularTotalPagoModal() {
+            if(!clienteSeleccionadoPago) return;
+            const num = parseInt(document.getElementById('pago-num-cuotas').value) || 0;
+            const total = num * clienteSeleccionadoPago.cuotaVal;
+            document.getElementById('pago-calc-total').innerText = total.toFixed(2);
+        }
+
+        function cerrarModalPago() {
+            document.getElementById('modal-pago').style.display = 'none';
+        }
+
+        function confirmarPagoModal() {
+            if(!clienteSeleccionadoPago) return;
+            const numCuotas = parseInt(document.getElementById('pago-num-cuotas').value);
+            
+            if(!numCuotas || numCuotas < 1) {
+                alert("Ingrese un número de cuotas válido.");
+                return;
+            }
+
+            const montoTotal = numCuotas * clienteSeleccionadoPago.cuotaVal;
+            registrarCobroDirecto(clienteSeleccionadoPago.id, 'pago', montoTotal, numCuotas);
+            cerrarModalPago();
+        }
+
+        function registrarCobroDirecto(id, estado, monto, cuotasPagadas = 0) {
             cobrosDia.push({
                 id: Date.now(),
                 clienteId: id,
                 estado: estado,
-                monto: valor,
+                monto: monto,
+                cuotasPagadas: cuotasPagadas,
                 hora: new Date().toLocaleTimeString()
             });
 
             const cli = clientes.find(c => c.id === id);
             if(cli && estado !== 'no_pago') {
-                cli.saldoPendiente -= valor;
+                cli.saldoPendiente = Math.max(0, cli.saldoPendiente - monto);
+                if(cuotasPagadas > 0) {
+                    cli.cuotasRestantes = Math.max(0, (cli.cuotasRestantes || cli.cuotasTotales) - cuotasPagadas);
+                }
             }
 
             localStorage.setItem('rc_cobros', JSON.stringify(cobrosDia));
@@ -647,9 +709,9 @@
         }
 
         function promptAbono(id) {
-            const val = prompt("Ingrese el monto abonado:");
+            const val = prompt("Ingrese el monto del abono (R$):");
             if(val && !isNaN(val) && parseFloat(val) > 0) {
-                registrarCobro(id, 'abono', parseFloat(val));
+                registrarCobroDirecto(id, 'abono', parseFloat(val), 0);
             }
         }
 
@@ -670,6 +732,8 @@
                 if(reg.estado === 'abono') textoEstado = 'ABONÓ';
                 if(reg.estado === 'no_pago') textoEstado = 'NO PAGÓ';
 
+                const detalleCuotas = reg.cuotasPagadas > 0 ? `(${reg.cuotasPagadas} cuotas)` : '';
+
                 cont.innerHTML += `
                     <div class="client-card status-${reg.estado}">
                         <div class="client-header">
@@ -677,7 +741,7 @@
                             <span>R$ ${reg.monto.toFixed(2)}</span>
                         </div>
                         <div class="client-info">
-                            <span class="badge badge-${reg.estado}">${textoEstado}</span>
+                            <span class="badge badge-${reg.estado}">${textoEstado} ${detalleCuotas}</span>
                             <span style="margin-left:8px;">Hora: ${reg.hora}</span>
                         </div>
                         <button class="btn btn-danger" style="margin-top:6px; padding:6px; font-size:0.85rem;" onclick="eliminarRegistro(${reg.id})">Deshacer / Eliminar</button>
@@ -691,7 +755,12 @@
                 const reg = cobrosDia.find(c => c.id === regId);
                 if(reg) {
                     const cli = clientes.find(c => c.id === reg.clienteId);
-                    if(cli) cli.saldoPendiente += reg.monto;
+                    if(cli) {
+                        cli.saldoPendiente += reg.monto;
+                        if(reg.cuotasPagadas > 0) {
+                            cli.cuotasRestantes += reg.cuotasPagadas;
+                        }
+                    }
                 }
                 cobrosDia = cobrosDia.filter(c => c.id !== regId);
                 localStorage.setItem('rc_cobros', JSON.stringify(cobrosDia));
@@ -709,7 +778,6 @@
                     } else if(cobro.estado === 'pago') {
                         if(c.diasAtraso > 0) c.diasAtraso -= 1;
                     }
-                    // Reset de banderas del día
                     c.esNuevo = false;
                     c.esRenovado = false;
                     c.disponibleHoy = false;
@@ -796,7 +864,8 @@
             clienteSeleccionadoRenov.frecuencia = document.getElementById('renov-frecuencia').value;
             clienteSeleccionadoRenov.monto = monto;
             clienteSeleccionadoRenov.interes = interes;
-            clienteSeleccionadoRenov.cuotas = cuotas;
+            clienteSeleccionadoRenov.cuotasTotales = cuotas;
+            clienteSeleccionadoRenov.cuotasRestantes = cuotas;
             clienteSeleccionadoRenov.totalPagar = total;
             clienteSeleccionadoRenov.cuotaVal = valorCuota;
             clienteSeleccionadoRenov.saldoPendiente = total;
@@ -832,7 +901,6 @@
             }
         }
 
-        // Inicialización
         cargarOpcionesCuotas();
         actualizarCategorias();
         renderizarRuta();
